@@ -1,5 +1,5 @@
 use biome_deserialize::{DeserializableValidator, DeserializationDiagnostic};
-use biome_deserialize_macros::{Deserializable, Merge, NoneState};
+use biome_deserialize_macros::{Deserializable, Merge};
 use bpaf::Bpaf;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -8,19 +8,9 @@ const GIT_IGNORE_FILE_NAME: &str = ".gitignore";
 
 /// Set of properties to integrate Biome with a VCS software.
 #[derive(
-    Bpaf,
-    Clone,
-    Debug,
-    Default,
-    Deserialize,
-    Deserializable,
-    Eq,
-    Merge,
-    NoneState,
-    PartialEq,
-    Serialize,
+    Bpaf, Clone, Debug, Default, Deserialize, Deserializable, Eq, Merge, PartialEq, Serialize,
 )]
-#[deserializable(from_none, with_validator)]
+#[deserializable(with_validator)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct VcsConfiguration {

@@ -1253,7 +1253,7 @@
 				},
 				"rules": {
 					"description": "List of rules",
-					"default": { "recommended": true },
+					"default": {},
 					"anyOf": [{ "$ref": "#/definitions/Rules" }, { "type": "null" }]
 				}
 			},

@@ -8,7 +8,7 @@ use crate::{Matcher, WorkspaceError};
 use biome_deserialize::{
     DeserializableValue, DeserializationDiagnostic, Merge, StringSet, VisitableType,
 };
-use biome_deserialize_macros::{Deserializable, Merge, NoneState};
+use biome_deserialize_macros::{Deserializable, Merge};
 use biome_diagnostics::Severity;
 use biome_js_analyze::options::PossibleOptions;
 use bpaf::Bpaf;
@@ -19,11 +19,8 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[derive(
-    Bpaf, Clone, Debug, Deserialize, Deserializable, Eq, Merge, NoneState, PartialEq, Serialize,
-)]
+#[derive(Bpaf, Clone, Debug, Deserialize, Deserializable, Eq, Merge, PartialEq, Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[deserializable(from_none)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct LinterConfiguration {
     /// if `false`, it disables the feature and the linter won't be executed. `true` by default
@@ -165,9 +162,9 @@ impl Merge for RuleConfiguration {
                     options: this.options.clone(),
                 }))
             }
-            // FIXME: Rule options don't have a `NoneState`, so we can't deep
-            //        merge them yet. For now, if an override specifies options,
-            //        it will still override *all* options.
+            // FIXME: Rule options don't wrap their fields in `Option`, so we
+            //        can't deep merge them. For now, if an override specifies
+            //        options, it will override *all* options.
             (_, other) => other,
         };
     }

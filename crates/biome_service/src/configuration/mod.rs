@@ -25,7 +25,7 @@ use biome_analyze::AnalyzerRules;
 use biome_console::markup;
 use biome_deserialize::json::deserialize_from_json_str;
 use biome_deserialize::{Deserialized, Merge, StringSet};
-use biome_deserialize_macros::{Deserializable, Merge, NoneState};
+use biome_deserialize_macros::{Deserializable, Merge};
 use biome_diagnostics::{DiagnosticExt, Error, Severity};
 use biome_fs::{AutoSearchResult, FileSystem, OpenOptions};
 use biome_js_analyze::metadata;
@@ -50,10 +50,9 @@ use std::path::{Path, PathBuf};
 
 /// The configuration that is contained inside the file `biome.json`
 #[derive(
-    Bpaf, Clone, Debug, Deserialize, Deserializable, Eq, Merge, NoneState, PartialEq, Serialize,
+    Bpaf, Clone, Debug, Default, Deserialize, Deserializable, Eq, Merge, PartialEq, Serialize,
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[deserializable(from_none)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Configuration {
     /// A field for the [JSON schema](https://json-schema.org/) specification
@@ -110,27 +109,6 @@ pub struct Configuration {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[bpaf(hide)]
     pub overrides: Option<Overrides>,
-}
-
-impl Default for Configuration {
-    fn default() -> Self {
-        Self {
-            files: None,
-            linter: Some(LinterConfiguration {
-                enabled: Some(true),
-                ..LinterConfiguration::default()
-            }),
-            organize_imports: Some(OrganizeImports::default()),
-            formatter: None,
-            css: None,
-            javascript: None,
-            json: None,
-            schema: None,
-            vcs: None,
-            extends: None,
-            overrides: None,
-        }
-    }
 }
 
 impl Configuration {

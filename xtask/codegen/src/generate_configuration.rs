@@ -68,7 +68,6 @@ pub(crate) fn generate_rules_configuration(mode: Mode) -> Result<()> {
 
     let mut struct_groups = Vec::new();
     let mut line_groups = Vec::new();
-    let mut default_for_groups = Vec::new();
     let mut group_as_default_rules = Vec::new();
     let mut group_match_code = Vec::new();
     let mut group_get_severity = Vec::new();
@@ -86,9 +85,6 @@ pub(crate) fn generate_rules_configuration(mode: Mode) -> Result<()> {
             #[deserializable(rename = #group_name_string_literal)]
             #[serde(skip_serializing_if = "Option::is_none")]
             pub #property_group_name: Option<#group_struct_name>
-        });
-        default_for_groups.push(quote! {
-            #property_group_name: None
         });
 
         let global_recommended = if group == "nursery" {
@@ -135,7 +131,7 @@ pub(crate) fn generate_rules_configuration(mode: Mode) -> Result<()> {
         use biome_analyze::RuleFilter;
         use biome_console::markup;
         use biome_deserialize::{DeserializableValidator, DeserializationDiagnostic};
-        use biome_deserialize_macros::{Deserializable, Merge, NoneState};
+        use biome_deserialize_macros::{Deserializable, Merge};
         use biome_diagnostics::{Category, Severity};
         use biome_rowan::TextRange;
         use indexmap::IndexSet;
@@ -143,8 +139,8 @@ pub(crate) fn generate_rules_configuration(mode: Mode) -> Result<()> {
         #[cfg(feature = "schema")]
         use schemars::JsonSchema;
 
-        #[derive(Clone, Debug, Deserialize, Deserializable, Eq, Merge, NoneState, PartialEq, Serialize)]
-        #[deserializable(from_none, with_validator)]
+        #[derive(Clone, Debug, Default, Deserialize, Deserializable, Eq, Merge, PartialEq, Serialize)]
+        #[deserializable(with_validator)]
         #[cfg_attr(feature = "schema", derive(JsonSchema))]
         #[serde(rename_all = "camelCase", deny_unknown_fields)]
         pub struct Rules {
@@ -157,16 +153,6 @@ pub(crate) fn generate_rules_configuration(mode: Mode) -> Result<()> {
             pub all: Option<bool>,
 
             #( #line_groups ),*
-        }
-
-        impl Default for Rules {
-            fn default() -> Self {
-                Self {
-                    recommended: Some(true),
-                    all: None,
-                    #( #default_for_groups ),*
-                }
-            }
         }
 
         impl DeserializableValidator for Rules {
@@ -422,8 +408,8 @@ fn generate_struct(group: &str, rules: &BTreeMap<&'static str, RuleMetadata>) ->
         )
     };
     quote! {
-        #[derive(Clone, Debug, Default, Deserialize, Deserializable, Eq, Merge, NoneState, PartialEq, Serialize)]
-        #[deserializable(from_none, with_validator)]
+        #[derive(Clone, Debug, Default, Deserialize, Deserializable, Eq, Merge, PartialEq, Serialize)]
+        #[deserializable(with_validator)]
         #[cfg_attr(feature = "schema", derive(JsonSchema))]
         #[serde(rename_all = "camelCase", default)]
         /// A list of rules that belong to this group

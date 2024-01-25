@@ -7,7 +7,6 @@ use crate::{CliDiagnostic, CliSession};
 use biome_console::{markup, ConsoleExt};
 use biome_deserialize::json::deserialize_from_json_str;
 use biome_deserialize::Merge;
-use biome_deserialize::NoneState;
 use biome_diagnostics::Diagnostic;
 use biome_diagnostics::{category, PrintDiagnostic};
 use biome_fs::{FileSystemExt, OpenOptions, RomePath};
@@ -140,7 +139,7 @@ pub(crate) fn run(migrate_payload: MigratePayload) -> Result<(), CliDiagnostic> 
                         formatter: Some(javascript_configuration.clone()),
                         ..Default::default()
                     }),
-                    ..NoneState::none()
+                    ..Default::default()
                 });
 
                 let new_content = serde_json::to_string(&configuration).map_err(|err| {

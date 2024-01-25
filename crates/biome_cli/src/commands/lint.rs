@@ -4,7 +4,7 @@ use crate::commands::{get_stdin, validate_configuration_diagnostics};
 use crate::{
     execute_mode, setup_cli_subscriber, CliDiagnostic, CliSession, Execution, TraversalMode,
 };
-use biome_deserialize::{Merge, NoneState};
+use biome_deserialize::Merge;
 use biome_service::configuration::vcs::VcsConfiguration;
 use biome_service::configuration::{
     load_configuration, FilesConfiguration, LinterConfiguration, LoadedConfiguration,
@@ -84,7 +84,7 @@ pub(crate) fn lint(session: CliSession, payload: LintCommandPayload) -> Result<(
         },
         files: files_configuration,
         vcs: vcs_configuration,
-        ..NoneState::none()
+        ..Default::default()
     });
 
     // check if support of git ignore files is enabled

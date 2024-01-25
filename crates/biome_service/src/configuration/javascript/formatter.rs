@@ -1,6 +1,6 @@
 use crate::configuration::PlainIndentStyle;
 use crate::configuration::{deserialize_line_width, serialize_line_width};
-use biome_deserialize_macros::{Deserializable, Merge, NoneState};
+use biome_deserialize_macros::{Deserializable, Merge};
 use biome_formatter::{LineEnding, LineWidth, QuoteStyle};
 use biome_js_formatter::context::trailing_comma::TrailingComma;
 use biome_js_formatter::context::{ArrowParentheses, QuoteProperties, Semicolons};
@@ -9,17 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// Formatting options specific to the JavaScript files
 #[derive(
-    Default,
-    Debug,
-    Deserialize,
-    Deserializable,
-    Merge,
-    NoneState,
-    Serialize,
-    Eq,
-    PartialEq,
-    Clone,
-    Bpaf,
+    Default, Debug, Deserialize, Deserializable, Merge, Serialize, Eq, PartialEq, Clone, Bpaf,
 )]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
