@@ -9,11 +9,14 @@ use biome_console::markup;
 use biome_diagnostics::category;
 use biome_fs::FileSystem;
 use biome_grit_patterns::{
-    compile_pattern, GritQuery, GritQueryResult, GritTargetFile, GritTargetLanguage,
-    JsTargetLanguage,
+    compile_pattern, BuiltInFunction, GritBinding, GritExecContext, GritPattern, GritQuery,
+    GritQueryContext, GritQueryEffect, GritQueryState, GritResolvedPattern, GritTargetFile,
+    GritTargetLanguage, JsTargetLanguage,
 };
 use biome_parser::AnyParse;
 use biome_rowan::TextRange;
+use grit_pattern_matcher::{binding::Binding, pattern::ResolvedPattern};
+use grit_util::{error::GritPatternError, AnalysisLogs};
 
 use crate::{AnalyzerPlugin, PluginDiagnostic};
 
@@ -31,6 +34,17 @@ impl AnalyzerGritPlugin {
             Some(path),
             // TODO: Target language should be determined dynamically.
             GritTargetLanguage::JsTargetLanguage(JsTargetLanguage),
+            vec![BuiltInFunction::new(
+                "register_diagnostic",
+                &[
+                    "span",
+                    "message",
+                    "fixer_description",
+                    "category",
+                    "applicability",
+                ],
+                Box::new(register_diagnostic),
+            )],
         )?;
 
         Ok(Self {
@@ -45,20 +59,21 @@ impl AnalyzerPlugin for AnalyzerGritPlugin {
 
         let file = GritTargetFile { parse: root, path };
         match self.grit_query.execute(file) {
-            Ok((results, logs)) => results
+            Ok(result) => result
+                .effects
                 .into_iter()
                 .filter_map(|result| match result {
-                    GritQueryResult::Match(match_) => Some(match_),
-                    GritQueryResult::Rewrite(_) | GritQueryResult::CreateFile(_) => None,
+                    GritQueryEffect::Match(rule_match) => Some(rule_match),
+                    GritQueryEffect::Rewrite(_) | GritQueryEffect::CreateFile(_) => None,
                 })
-                .map(|match_| {
+                .map(|rule_match| {
                     RuleDiagnostic::new(
                         category!("plugin"),
-                        match_.ranges.into_iter().next().map(from_grit_range),
+                        rule_match.ranges.into_iter().next().map(from_grit_range),
                         markup!(<Emphasis>{name}</Emphasis>" matched"),
                     )
                 })
-                .chain(logs.iter().map(|log| {
+                .chain(result.logs.iter().map(|log| {
                     RuleDiagnostic::new(
                         category!("plugin"),
                         log.range.map(from_grit_range),
@@ -66,6 +81,7 @@ impl AnalyzerPlugin for AnalyzerGritPlugin {
                     )
                     .verbose()
                 }))
+                .chain(result.diagnostics)
                 .collect(),
             Err(error) => vec![RuleDiagnostic::new(
                 category!("plugin"),
@@ -78,4 +94,36 @@ impl AnalyzerPlugin for AnalyzerGritPlugin {
 
 fn from_grit_range(range: grit_util::Range) -> TextRange {
     TextRange::new(range.start_byte.into(), range.end_byte.into())
+}
+
+fn register_diagnostic<'a>(
+    args: &'a [Option<GritPattern<GritQueryContext>>],
+    context: &'a GritExecContext,
+    state: &mut GritQueryState<'a, GritQueryContext>,
+    logs: &mut AnalysisLogs,
+) -> Result<GritResolvedPattern<'a>, GritPatternError> {
+    let args = GritResolvedPattern::from_patterns(args, state, context, logs)?;
+
+    let (span_node, message, _fixer_description, _category, _applicability) = match args.as_slice() {
+        [Some(span), Some(message)] => (span, message, None, None, None),
+        [Some(span), Some(message), Some(fixer_description), Some(category), Some(applicability)] => (span, message, Some(fixer_description), Some(category), Some(applicability)),
+        // TODO: Do we want to make `category` and `applicability` optional, even for rules with a fixer?
+        _ => return Err(GritPatternError::new(
+            "register_diagnostic() takes 2 or 5 arguments: span and message, and optional fixer_description, category and applicability",
+        )),
+    };
+
+    let span = span_node
+        .get_last_binding()
+        .and_then(GritBinding::as_node)
+        .map(|node| node.text_trimmed_range());
+
+    let message = message
+        .get_last_binding()
+        .and_then(|binding| binding.text(&context.lang).ok());
+    let message = message.as_deref().unwrap_or("(no message)");
+
+    context.add_diagnostic(RuleDiagnostic::new(category!("plugin"), span, message));
+
+    Ok(span_node.clone())
 }

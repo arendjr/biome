@@ -41,7 +41,7 @@ pub type CallbackFn = dyn for<'a, 'b> Fn(
 
 pub struct BuiltInFunction {
     pub name: &'static str,
-    pub params: Vec<&'static str>,
+    pub params: &'static [&'static str],
     pub(crate) func: Box<CallableFn>,
 }
 
@@ -56,7 +56,7 @@ impl BuiltInFunction {
         (self.func)(args, context, state, logs)
     }
 
-    pub fn new(name: &'static str, params: Vec<&'static str>, func: Box<CallableFn>) -> Self {
+    pub fn new(name: &'static str, params: &'static [&'static str], func: Box<CallableFn>) -> Self {
         Self { name, params, func }
     }
 }
@@ -87,24 +87,33 @@ impl Debug for BuiltIns {
 impl Default for BuiltIns {
     fn default() -> Self {
         vec![
-            BuiltInFunction::new("resolve", vec!["path"], Box::new(resolve_path_fn)),
-            BuiltInFunction::new("capitalize", vec!["string"], Box::new(capitalize_fn)),
-            BuiltInFunction::new("lowercase", vec!["string"], Box::new(lowercase_fn)),
-            BuiltInFunction::new("uppercase", vec!["string"], Box::new(uppercase_fn)),
-            BuiltInFunction::new("text", vec!["string"], Box::new(text_fn)),
-            BuiltInFunction::new("trim", vec!["string", "trim_chars"], Box::new(trim_fn)),
-            BuiltInFunction::new("join", vec!["list", "separator"], Box::new(join_fn)),
-            BuiltInFunction::new("distinct", vec!["list"], Box::new(distinct_fn)),
-            BuiltInFunction::new("length", vec!["target"], Box::new(length_fn)),
-            BuiltInFunction::new("shuffle", vec!["list"], Box::new(shuffle_fn)),
-            BuiltInFunction::new("random", vec!["floor", "ceiling"], Box::new(random_fn)),
-            BuiltInFunction::new("split", vec!["string", "separator"], Box::new(split_fn)),
+            BuiltInFunction::new("resolve", &["path"], Box::new(resolve_path_fn)),
+            BuiltInFunction::new("capitalize", &["string"], Box::new(capitalize_fn)),
+            BuiltInFunction::new("lowercase", &["string"], Box::new(lowercase_fn)),
+            BuiltInFunction::new("uppercase", &["string"], Box::new(uppercase_fn)),
+            BuiltInFunction::new("text", &["string"], Box::new(text_fn)),
+            BuiltInFunction::new("trim", &["string", "trim_chars"], Box::new(trim_fn)),
+            BuiltInFunction::new("join", &["list", "separator"], Box::new(join_fn)),
+            BuiltInFunction::new("distinct", &["list"], Box::new(distinct_fn)),
+            BuiltInFunction::new("length", &["target"], Box::new(length_fn)),
+            BuiltInFunction::new("shuffle", &["list"], Box::new(shuffle_fn)),
+            BuiltInFunction::new("random", &["floor", "ceiling"], Box::new(random_fn)),
+            BuiltInFunction::new("split", &["string", "separator"], Box::new(split_fn)),
         ]
         .into()
     }
 }
 
 impl BuiltIns {
+    pub(crate) fn add_builtin(&mut self, built_in: BuiltInFunction) {
+        debug_assert!(self
+            .built_ins
+            .iter()
+            .all(|existing| existing.name != built_in.name));
+
+        self.built_ins.push(built_in);
+    }
+
     pub(crate) fn call<'a>(
         &self,
         call: &'a CallBuiltIn<GritQueryContext>,

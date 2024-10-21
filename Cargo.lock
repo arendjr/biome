@@ -123,6 +123,7 @@ dependencies = [
  "biome_deserialize",
  "biome_deserialize_macros",
  "biome_diagnostics",
+ "biome_parser",
  "biome_rowan",
  "enumflags2",
  "rustc-hash 1.1.0",
@@ -641,6 +642,7 @@ dependencies = [
 name = "biome_grit_patterns"
 version = "0.0.1"
 dependencies = [
+ "biome_analyze",
  "biome_console",
  "biome_diagnostics",
  "biome_grit_parser",
@@ -738,10 +740,12 @@ dependencies = [
  "biome_deserialize",
  "biome_deserialize_macros",
  "biome_diagnostics",
+ "biome_fs",
  "biome_js_factory",
  "biome_js_parser",
  "biome_js_semantic",
  "biome_js_syntax",
+ "biome_plugin_loader",
  "biome_project",
  "biome_rowan",
  "biome_string_case",
@@ -1062,6 +1066,7 @@ dependencies = [
  "biome_json_parser",
  "biome_parser",
  "biome_rowan",
+ "grit-pattern-matcher",
  "grit-util",
  "insta",
  "serde",
