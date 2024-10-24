@@ -122,7 +122,7 @@ impl GritQuery {
 
         let mut built_ins = BuiltIns::default();
         for built_in in extra_built_ins {
-            built_ins.add_builtin(built_in);
+            built_ins.add(built_in);
         }
 
         let context = CompilationContext {

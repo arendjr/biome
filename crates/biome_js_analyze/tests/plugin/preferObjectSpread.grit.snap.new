@@ -1,6 +1,6 @@
 ---
 source: crates/biome_js_analyze/tests/spec_tests.rs
-assertion_line: 331
+assertion_line: 338
 expression: preferObjectSpread.grit
 ---
 # Input
@@ -15,47 +15,43 @@ Object.assign({ foo: 'bar'}, baz);
 
 # Diagnostics
 ```
-preferObjectSpread.grit:1:19 lint/correctness/noUndeclaredVariables ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+preferObjectSpread.grit:1:15 plugin ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  ! The foo variable is undeclared.
+  ! (no message)
   
   > 1 │ Object.assign({}, foo);
-      │                   ^^^
+      │               ^^^^^^^
     2 │ 
     3 │ Object.assign({}, {foo: 'bar'});
   
-  i By default, Biome recognizes browser and Node.js globals.
-    You can ignore more globals using the javascript.globals configuration.
+
+```
+
+```
+preferObjectSpread.grit:3:15 plugin ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! (no message)
+  
+    1 │ Object.assign({}, foo);
+    2 │ 
+  > 3 │ Object.assign({}, {foo: 'bar'});
+      │               ^^^^^^^^^^^^^^^^
+    4 │ 
+    5 │ Object.assign({ foo: 'bar'}, baz);
   
 
 ```
 
 ```
-preferObjectSpread.grit:5:30 lint/correctness/noUndeclaredVariables ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+preferObjectSpread.grit:5:15 plugin ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  ! The baz variable is undeclared.
+  ! (no message)
   
     3 │ Object.assign({}, {foo: 'bar'});
     4 │ 
   > 5 │ Object.assign({ foo: 'bar'}, baz);
-      │                              ^^^
+      │               ^^^^^^^^^^^^^^^^^^
     6 │ 
-  
-  i By default, Biome recognizes browser and Node.js globals.
-    You can ignore more globals using the javascript.globals configuration.
-  
-
-```
-
-```
-preferObjectSpread.grit:1:1 plugin ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ! preferObjectSpread matched
-  
-  > 1 │ Object.assign({}, foo);
-      │ ^^^^^^^^^^^^^^^^^^^^^^
-    2 │ 
-    3 │ Object.assign({}, {foo: 'bar'});
   
 
 ```

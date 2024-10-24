@@ -43,6 +43,7 @@ pub struct BuiltInFunction {
     pub name: &'static str,
     pub params: &'static [&'static str],
     pub(crate) func: Box<CallableFn>,
+    pub position: BuiltInFunctionPosition,
 }
 
 impl BuiltInFunction {
@@ -57,7 +58,22 @@ impl BuiltInFunction {
     }
 
     pub fn new(name: &'static str, params: &'static [&'static str], func: Box<CallableFn>) -> Self {
-        Self { name, params, func }
+        Self {
+            name,
+            params,
+            func,
+            position: BuiltInFunctionPosition::Pattern,
+        }
+    }
+
+    pub fn as_predicate(mut self) -> Self {
+        self.position = BuiltInFunctionPosition::Predicate;
+        self
+    }
+
+    pub fn as_predicate_or_pattern(mut self) -> Self {
+        self.position = BuiltInFunctionPosition::Both;
+        self
     }
 }
 
@@ -67,6 +83,23 @@ impl std::fmt::Debug for BuiltInFunction {
             .field("name", &self.name)
             .field("params", &self.params)
             .finish()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BuiltInFunctionPosition {
+    Pattern,
+    Predicate,
+    Both,
+}
+
+impl BuiltInFunctionPosition {
+    pub fn is_pattern(&self) -> bool {
+        matches!(self, Self::Pattern | Self::Both)
+    }
+
+    pub fn is_predicate(&self) -> bool {
+        matches!(self, Self::Predicate | Self::Both)
     }
 }
 
@@ -105,7 +138,7 @@ impl Default for BuiltIns {
 }
 
 impl BuiltIns {
-    pub(crate) fn add_builtin(&mut self, built_in: BuiltInFunction) {
+    pub(crate) fn add(&mut self, built_in: BuiltInFunction) {
         debug_assert!(self
             .built_ins
             .iter()
@@ -143,8 +176,15 @@ impl BuiltIns {
         Pattern::CallbackPattern(Box::new(CallbackPattern::new(index)))
     }
 
-    pub(crate) fn get_built_ins(&self) -> &[BuiltInFunction] {
+    pub(crate) fn as_slice(&self) -> &[BuiltInFunction] {
         &self.built_ins
+    }
+
+    pub(crate) fn get_with_index(&self, name: &str) -> Option<(usize, &BuiltInFunction)> {
+        self.built_ins
+            .iter()
+            .enumerate()
+            .find(|(_, built_in)| built_in.name == name)
     }
 }
 

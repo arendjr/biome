@@ -10,8 +10,8 @@ use biome_diagnostics::category;
 use biome_fs::FileSystem;
 use biome_grit_patterns::{
     compile_pattern, BuiltInFunction, GritBinding, GritExecContext, GritPattern, GritQuery,
-    GritQueryContext, GritQueryEffect, GritQueryState, GritResolvedPattern, GritTargetFile,
-    GritTargetLanguage, JsTargetLanguage,
+    GritQueryContext, GritQueryState, GritResolvedPattern, GritTargetFile, GritTargetLanguage,
+    JsTargetLanguage,
 };
 use biome_parser::AnyParse;
 use biome_rowan::TextRange;
@@ -44,7 +44,8 @@ impl AnalyzerGritPlugin {
                     "applicability",
                 ],
                 Box::new(register_diagnostic),
-            )],
+            )
+            .as_predicate()],
         )?;
 
         Ok(Self {
@@ -60,27 +61,16 @@ impl AnalyzerPlugin for AnalyzerGritPlugin {
         let file = GritTargetFile { parse: root, path };
         match self.grit_query.execute(file) {
             Ok(result) => result
-                .effects
-                .into_iter()
-                .filter_map(|result| match result {
-                    GritQueryEffect::Match(rule_match) => Some(rule_match),
-                    GritQueryEffect::Rewrite(_) | GritQueryEffect::CreateFile(_) => None,
-                })
-                .map(|rule_match| {
-                    RuleDiagnostic::new(
-                        category!("plugin"),
-                        rule_match.ranges.into_iter().next().map(from_grit_range),
-                        markup!(<Emphasis>{name}</Emphasis>" matched"),
-                    )
-                })
-                .chain(result.logs.iter().map(|log| {
+                .logs
+                .iter()
+                .map(|log| {
                     RuleDiagnostic::new(
                         category!("plugin"),
                         log.range.map(from_grit_range),
                         markup!(<Emphasis>{name}</Emphasis>" logged: "<Info>{log.message}</Info>),
                     )
                     .verbose()
-                }))
+                })
                 .chain(result.diagnostics)
                 .collect(),
             Err(error) => vec![RuleDiagnostic::new(
@@ -105,7 +95,7 @@ fn register_diagnostic<'a>(
     let args = GritResolvedPattern::from_patterns(args, state, context, logs)?;
 
     let (span_node, message, _fixer_description, _category, _applicability) = match args.as_slice() {
-        [Some(span), Some(message)] => (span, message, None, None, None),
+        [Some(span), Some(message), None, None, None] => (span, message, None, None, None),
         [Some(span), Some(message), Some(fixer_description), Some(category), Some(applicability)] => (span, message, Some(fixer_description), Some(category), Some(applicability)),
         // TODO: Do we want to make `category` and `applicability` optional, even for rules with a fixer?
         _ => return Err(GritPatternError::new(

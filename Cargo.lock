@@ -2111,8 +2111,6 @@ dependencies = [
 [[package]]
 name = "grit-pattern-matcher"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8430b130e086a1764789402b34685336f2e3f6ec37cd188535bede892f88e65b"
 dependencies = [
  "elsa",
  "grit-util",
@@ -2124,8 +2122,6 @@ dependencies = [
 [[package]]
 name = "grit-util"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99b005c4c15ce0c47022554c41a01fe2441d3622e586a82614a6fe681833d5d4"
 dependencies = [
  "derive_builder",
  "once_cell",

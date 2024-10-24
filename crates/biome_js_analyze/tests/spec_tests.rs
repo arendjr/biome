@@ -299,11 +299,18 @@ fn run_plugin_test(input: &'static str, _: &str, _: &str, _: &str) {
     let file_name = plugin_path.file_name().and_then(OsStr::to_str).unwrap();
     let input_path = plugin_path.with_extension("js");
 
-    let plugin = AnalyzerGritPlugin::load(
+    let plugin = match AnalyzerGritPlugin::load(
         &OsFileSystem::new(plugin_path.to_owned()),
         Path::new(plugin_path),
-    )
-    .unwrap();
+    ) {
+        Ok(plugin) => plugin,
+        Err(err) => panic!("Cannot load plugin: {err:?}"),
+    };
+
+    let filter = AnalysisFilter {
+        enabled_rules: Some(&[]),
+        ..AnalysisFilter::default()
+    };
 
     let mut snapshot = String::new();
 
@@ -316,7 +323,7 @@ fn run_plugin_test(input: &'static str, _: &str, _: &str, _: &str) {
         &mut snapshot,
         &input_code,
         source_type,
-        AnalysisFilter::default(),
+        filter,
         file_name,
         &input_path,
         CheckActionType::Lint,
