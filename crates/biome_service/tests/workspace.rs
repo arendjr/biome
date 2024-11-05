@@ -9,6 +9,7 @@ mod test {
         server, FileGuard, OpenFileParams, RegisterProjectFolderParams,
     };
     use biome_service::Workspace;
+
     fn create_server() -> Box<dyn Workspace> {
         let workspace = server();
         workspace
@@ -242,6 +243,7 @@ type User {
                 RuleGroup::Nursery,
                 "useDeprecatedReason",
             )],
+            vec![],
             vec![],
         );
         assert!(result.is_ok());

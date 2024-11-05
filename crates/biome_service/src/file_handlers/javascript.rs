@@ -469,7 +469,7 @@ pub(crate) fn lint(params: LintParams) -> LintResults {
                 &tree,
                 filter,
                 analyzer_options,
-                Vec::new(),
+                params.plugins,
                 file_source,
                 params.manifest,
                 |signal| {

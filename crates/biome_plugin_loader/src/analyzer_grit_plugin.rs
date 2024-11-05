@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     fmt::Debug,
     path::{Path, PathBuf},
-    rc::Rc,
+    sync::Arc,
 };
 
 use biome_analyze::RuleDiagnostic;
@@ -19,16 +19,16 @@ use biome_rowan::TextRange;
 use grit_pattern_matcher::{binding::Binding, pattern::ResolvedPattern};
 use grit_util::{error::GritPatternError, AnalysisLogs};
 
-use crate::{AnalyzerPlugin, PluginDiagnostic};
+use crate::{AnalyzerPlugin, LoadPluginError};
 
 /// Definition of an analyzer plugin.
 #[derive(Clone, Debug)]
 pub struct AnalyzerGritPlugin {
-    grit_query: Rc<GritQuery>,
+    grit_query: Arc<GritQuery>,
 }
 
 impl AnalyzerGritPlugin {
-    pub fn load(fs: &dyn FileSystem, path: &Path) -> Result<Self, PluginDiagnostic> {
+    pub fn load(fs: &dyn FileSystem, path: &Path) -> Result<Self, LoadPluginError> {
         let source = fs.read_file_from_path(path)?;
         let options = CompilePatternOptions::default()
             .with_extra_built_ins(vec![BuiltInFunction::new(
@@ -47,12 +47,16 @@ impl AnalyzerGritPlugin {
         let query = compile_pattern_with_options(&source, options)?;
 
         Ok(Self {
-            grit_query: Rc::new(query),
+            grit_query: Arc::new(query),
         })
     }
 }
 
 impl AnalyzerPlugin for AnalyzerGritPlugin {
+    fn clone(&self) -> Box<dyn AnalyzerPlugin> {
+        Box::new(Clone::clone(self))
+    }
+
     fn evaluate(&self, root: AnyParse, path: PathBuf) -> Vec<RuleDiagnostic> {
         let name: &str = self.grit_query.name.as_deref().unwrap_or("anonymous");
 

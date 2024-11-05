@@ -11,7 +11,7 @@ use std::fmt::{Debug, Formatter};
 
 /// Series of errors that can be thrown while loading a plugin.
 #[derive(Deserialize, Diagnostic, Serialize)]
-pub enum PluginDiagnostic {
+pub enum LoadPluginError {
     /// Thrown when a plugin can't be resolved from `node_modules`.
     CantResolve(CantResolve),
 
@@ -34,34 +34,34 @@ pub enum PluginDiagnostic {
     UnsupportedRuleFormat(UnsupportedRuleFormat),
 }
 
-impl From<CompileError> for PluginDiagnostic {
+impl From<CompileError> for LoadPluginError {
     fn from(value: CompileError) -> Self {
         println!("Compile Error: {value:?}");
-        PluginDiagnostic::Compile(CompileDiagnostic {
+        LoadPluginError::Compile(CompileDiagnostic {
             source: Some(Error::from(value)),
         })
     }
 }
 
-impl From<DeserializationDiagnostic> for PluginDiagnostic {
+impl From<DeserializationDiagnostic> for LoadPluginError {
     fn from(value: DeserializationDiagnostic) -> Self {
-        PluginDiagnostic::Deserialization(value)
+        LoadPluginError::Deserialization(value)
     }
 }
 
-impl From<FileSystemDiagnostic> for PluginDiagnostic {
+impl From<FileSystemDiagnostic> for LoadPluginError {
     fn from(value: FileSystemDiagnostic) -> Self {
-        PluginDiagnostic::FileSystem(value)
+        LoadPluginError::FileSystem(value)
     }
 }
 
-impl From<SyntaxError> for PluginDiagnostic {
+impl From<SyntaxError> for LoadPluginError {
     fn from(_: SyntaxError) -> Self {
-        PluginDiagnostic::Deserialization(DeserializationDiagnostic::new(markup! {"Syntax Error"}))
+        LoadPluginError::Deserialization(DeserializationDiagnostic::new(markup! {"Syntax Error"}))
     }
 }
 
-impl PluginDiagnostic {
+impl LoadPluginError {
     pub fn cant_resolve(path: impl Display, source: Option<ResolveError>) -> Self {
         Self::CantResolve(CantResolve {
             message: MessageAndDescription::from(
@@ -88,13 +88,13 @@ impl PluginDiagnostic {
     }
 }
 
-impl Debug for PluginDiagnostic {
+impl Debug for LoadPluginError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self, f)
     }
 }
 
-impl std::fmt::Display for PluginDiagnostic {
+impl std::fmt::Display for LoadPluginError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.description(f)
     }

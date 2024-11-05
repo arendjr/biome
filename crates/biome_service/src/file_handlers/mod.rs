@@ -15,8 +15,8 @@ use crate::{
     WorkspaceError,
 };
 use biome_analyze::{
-    AnalyzerDiagnostic, GroupCategory, Queryable, RegistryVisitor, Rule, RuleCategories,
-    RuleCategory, RuleFilter, RuleGroup,
+    AnalyzerDiagnostic, AnalyzerPlugin, GroupCategory, Queryable, RegistryVisitor, Rule,
+    RuleCategories, RuleCategory, RuleFilter, RuleGroup,
 };
 use biome_configuration::analyzer::RuleSelector;
 use biome_configuration::Rules;
@@ -460,6 +460,7 @@ pub(crate) struct LintParams<'a> {
     pub(crate) skip: Vec<RuleSelector>,
     pub(crate) categories: RuleCategories,
     pub(crate) manifest: Option<PackageJson>,
+    pub(crate) plugins: Vec<Box<dyn AnalyzerPlugin>>,
 }
 
 pub(crate) struct LintResults {

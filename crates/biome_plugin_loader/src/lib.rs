@@ -5,13 +5,14 @@ mod plugin_manifest;
 use std::path::Path;
 
 pub use analyzer_grit_plugin::AnalyzerGritPlugin;
+pub use diagnostics::LoadPluginError;
+
 use biome_analyze::AnalyzerPlugin;
 use biome_console::markup;
 use biome_deserialize::json::deserialize_from_json_str;
 use biome_diagnostics::adapters::ResolveError;
 use biome_fs::FileSystem;
 use biome_json_parser::JsonParserOptions;
-use diagnostics::PluginDiagnostic;
 use plugin_manifest::PluginManifest;
 
 #[derive(Debug)]
@@ -28,7 +29,7 @@ impl BiomePlugin {
         plugin_path: &str,
         relative_resolution_base_path: &Path,
         external_resolution_base_path: &Path,
-    ) -> Result<Self, PluginDiagnostic> {
+    ) -> Result<Self, LoadPluginError> {
         let plugin_path = if let Some(plugin_path) = plugin_path.strip_prefix("./") {
             relative_resolution_base_path.join(plugin_path)
         } else if plugin_path.starts_with('.') {
@@ -36,7 +37,7 @@ impl BiomePlugin {
         } else {
             fs.resolve_configuration(plugin_path, external_resolution_base_path)
                 .map_err(|error| {
-                    PluginDiagnostic::cant_resolve(
+                    LoadPluginError::cant_resolve(
                         external_resolution_base_path.display().to_string(),
                         Some(ResolveError::from(error)),
                     )
@@ -59,7 +60,7 @@ impl BiomePlugin {
 
         let manifest_path = plugin_path.join("biome-manifest.jsonc");
         if !fs.path_is_file(&manifest_path) {
-            return Err(PluginDiagnostic::cant_resolve(
+            return Err(LoadPluginError::cant_resolve(
                 manifest_path.display().to_string(),
                 None,
             ));
@@ -74,7 +75,7 @@ impl BiomePlugin {
         .consume();
 
         let Some(manifest) = manifest else {
-            return Err(PluginDiagnostic::invalid_manifest(
+            return Err(LoadPluginError::invalid_manifest(
                 markup!("Cannot load plugin manifest "<Emphasis>{manifest_path.display().to_string()}</Emphasis>),
                 errors.into_iter().next(),
             ));
@@ -89,7 +90,7 @@ impl BiomePlugin {
                         let plugin = AnalyzerGritPlugin::load(fs, &plugin_path.join(rule))?;
                         Ok(Box::new(plugin) as Box<dyn AnalyzerPlugin>)
                     } else {
-                        Err(PluginDiagnostic::unsupported_rule_format(markup!(
+                        Err(LoadPluginError::unsupported_rule_format(markup!(
                             "Unsupported rule format for plugin rule "
                             <Emphasis>{rule.display().to_string()}</Emphasis>
                         )))

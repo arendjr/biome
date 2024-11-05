@@ -353,7 +353,7 @@ fn lint(params: LintParams) -> LintResults {
 
             info!("Analyze file {}", params.path.display());
             let (_, analyze_diagnostics) =
-                analyze(&tree, filter, &analyzer_options, Vec::new(), |signal| {
+                analyze(&tree, filter, &analyzer_options, params.plugins, |signal| {
                     if let Some(mut diagnostic) = signal.diagnostic() {
                         // Do not report unused suppression comment diagnostics if this is a syntax-only analyzer pass
                         if ignores_suppression_comment

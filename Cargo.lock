@@ -1170,6 +1170,7 @@ dependencies = [
  "biome_json_parser",
  "biome_json_syntax",
  "biome_parser",
+ "biome_plugin_loader",
  "biome_project",
  "biome_rowan",
  "biome_string_case",

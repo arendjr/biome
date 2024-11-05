@@ -620,6 +620,12 @@ pub struct PullDiagnosticsParams {
     pub max_diagnostics: u64,
     pub only: Vec<RuleSelector>,
     pub skip: Vec<RuleSelector>,
+
+    /// Plugins to enable in the analyzer.
+    ///
+    /// Be careful that plugins must first be loaded through
+    /// [Workspace::load_plugins()].
+    pub plugins: Vec<PluginId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -820,6 +826,13 @@ impl RageEntry {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
+pub struct LoadPluginsParams {
+    pub plugins: Vec<PatternId>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase")]
 pub struct ParsePatternParams {
     pub pattern: String,
     pub default_language: GritTargetLanguage,
@@ -879,6 +892,35 @@ impl From<String> for PatternId {
 }
 
 impl From<&str> for PatternId {
+    fn from(value: &str) -> Self {
+        Self(value.to_owned())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct PluginId(String);
+
+impl std::fmt::Display for PluginId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<PluginId> for String {
+    fn from(value: PluginId) -> Self {
+        value.0
+    }
+}
+
+impl From<String> for PluginId {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for PluginId {
     fn from(value: &str) -> Self {
         Self(value.to_owned())
     }
@@ -1003,6 +1045,11 @@ pub trait Workspace: Send + Sync + RefUnwindSafe {
     /// Returns debug information about this workspace.
     fn rage(&self, params: RageParams) -> Result<RageResult, WorkspaceError>;
 
+    /// Loads one or more plugins.
+    ///
+    /// Once loaded, the plugins are safe to be used in other methods.
+    fn load_plugins(&self, plugins: LoadPluginsParams) -> Result<(), WorkspaceError>;
+
     /// Parses a pattern to be used in follow-up [`Self::search_pattern`] requests.
     ///
     /// Clients should call [`Self::drop_pattern()`] when they no need longer need it.
@@ -1094,6 +1141,7 @@ impl<'app, W: Workspace + ?Sized> FileGuard<'app, W> {
         max_diagnostics: u32,
         only: Vec<RuleSelector>,
         skip: Vec<RuleSelector>,
+        plugins: Vec<PluginId>,
     ) -> Result<PullDiagnosticsResult, WorkspaceError> {
         self.workspace.pull_diagnostics(PullDiagnosticsParams {
             path: self.path.clone(),
@@ -1101,6 +1149,7 @@ impl<'app, W: Workspace + ?Sized> FileGuard<'app, W> {
             max_diagnostics: max_diagnostics.into(),
             only,
             skip,
+            plugins,
         })
     }
 

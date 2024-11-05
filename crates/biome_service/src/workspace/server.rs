@@ -1,11 +1,5 @@
 use super::{
-    ChangeFileParams, CloseFileParams, FeatureKind, FeatureName, FixFileResult, FormatFileParams,
-    FormatOnTypeParams, FormatRangeParams, GetControlFlowGraphParams, GetFormatterIRParams,
-    GetSyntaxTreeParams, GetSyntaxTreeResult, OpenFileParams, ParsePatternParams,
-    ParsePatternResult, PatternId, ProjectKey, PullActionsParams, PullActionsResult,
-    PullDiagnosticsParams, PullDiagnosticsResult, RegisterProjectFolderParams, RenameResult,
-    SearchPatternParams, SearchResults, SetManifestForProjectParams, SupportsFeatureParams,
-    UnregisterProjectFolderParams, UpdateSettingsParams,
+    ChangeFileParams, CloseFileParams, FeatureKind, FeatureName, FixFileResult, FormatFileParams, FormatOnTypeParams, FormatRangeParams, GetControlFlowGraphParams, GetFormatterIRParams, GetSyntaxTreeParams, GetSyntaxTreeResult, LoadPluginsParams, OpenFileParams, ParsePatternParams, ParsePatternResult, PatternId, PluginId, ProjectKey, PullActionsParams, PullActionsResult, PullDiagnosticsParams, PullDiagnosticsResult, RegisterProjectFolderParams, RenameResult, SearchPatternParams, SearchResults, SetManifestForProjectParams, SupportsFeatureParams, UnregisterProjectFolderParams, UpdateSettingsParams
 };
 use crate::diagnostics::{InvalidPattern, SearchError};
 use crate::file_handlers::{
@@ -19,6 +13,7 @@ use crate::workspace::{
 use crate::{
     file_handlers::Features, settings::WorkspaceSettingsHandle, Workspace, WorkspaceError,
 };
+use biome_analyze::AnalyzerPlugin;
 use biome_configuration::DEFAULT_FILE_SIZE_LIMIT;
 use biome_diagnostics::{
     serde::Diagnostic as SerdeDiagnostic, Diagnostic, DiagnosticExt, Severity,
@@ -30,6 +25,7 @@ use biome_js_syntax::ModuleKind;
 use biome_json_parser::{parse_json_with_cache, JsonParserOptions};
 use biome_json_syntax::JsonFileSource;
 use biome_parser::AnyParse;
+use biome_plugin_loader::BiomePlugin;
 use biome_project::{NodeJsProject, PackageJson, PackageType, Project};
 use biome_rowan::NodeCache;
 use dashmap::{mapref::entry::Entry, DashMap};
@@ -56,6 +52,8 @@ pub(super) struct WorkspaceServer {
     file_sources: RwLock<IndexSet<DocumentFileSource>>,
     /// Stores patterns to search for.
     patterns: DashMap<PatternId, GritQuery>,
+    /// Loaded plugins.
+    plugins: DashMap<PluginId, BiomePlugin>,
 }
 
 /// The `Workspace` object is long-lived, so we want it to be able to cross
@@ -91,6 +89,7 @@ impl WorkspaceServer {
             current_project_path: RwLock::default(),
             file_sources: RwLock::default(),
             patterns: Default::default(),
+            plugins: Default::default(),
         }
     }
 
@@ -362,6 +361,32 @@ impl WorkspaceServer {
             || feature_included_files.matches_path(path);
         !is_feature_included || feature_ignored_files.matches_path(path)
     }
+
+    fn get_analyzer_plugins(
+        &self,
+        plugins: &[PluginId],
+    ) -> Result<Vec<Box<dyn AnalyzerPlugin>>, WorkspaceError> {
+        let plugins = plugins
+            .iter()
+            .map(|plugin_id| {
+                self.plugins
+                    .get(plugin_id)
+                    .map(|plugin| {
+                        plugin
+                            .analyzer_plugins
+                            .iter()
+                            .map(|plugin| AnalyzerPlugin::clone(plugin.as_ref()))
+                            .collect::<Vec<_>>()
+                    })
+                    .ok_or_else(WorkspaceError::plugin_not_loaded)
+            })
+            .collect::<Result<Vec<_>, WorkspaceError>>()?
+            .into_iter()
+            .flatten()
+            .collect();
+
+        Ok(plugins)
+    }
 }
 
 impl Workspace for WorkspaceServer {
@@ -619,6 +644,7 @@ impl Workspace for WorkspaceServer {
         params: PullDiagnosticsParams,
     ) -> Result<PullDiagnosticsResult, WorkspaceError> {
         let parse = self.get_parse(params.path.clone())?;
+        let plugins = self.get_analyzer_plugins(&params.plugins)?;
         let manifest = self.get_current_manifest()?;
         let (diagnostics, errors, skipped_diagnostics) =
             if let Some(lint) = self.get_file_capabilities(&params.path).analyzer.lint {
@@ -633,6 +659,7 @@ impl Workspace for WorkspaceServer {
                         language: self.get_file_source(&params.path),
                         categories: params.categories,
                         manifest,
+                        plugins,
                     });
 
                     (
@@ -810,6 +837,19 @@ impl Workspace for WorkspaceServer {
         ];
 
         Ok(RageResult { entries })
+    }
+
+    fn load_plugins(&self, params: LoadPluginsParams) -> Result<(), WorkspaceError> {
+        for plugin_id in params.plugins {
+            let plugin = BiomePlugin::load(
+                self.workspace().,
+                plugin_path,
+                relative_resolution_base_path,
+                external_resolution_base_path,
+            )?;
+        }
+
+        Ok(())
     }
 
     fn parse_pattern(

@@ -15,9 +15,9 @@ use std::{
 use super::{
     ChangeFileParams, CloseFileParams, FixFileParams, FixFileResult, FormatFileParams,
     FormatOnTypeParams, FormatRangeParams, GetControlFlowGraphParams, GetFormatterIRParams,
-    GetSyntaxTreeParams, GetSyntaxTreeResult, OpenFileParams, PullActionsParams, PullActionsResult,
-    PullDiagnosticsParams, PullDiagnosticsResult, RenameParams, RenameResult, SearchPatternParams,
-    SearchResults, SupportsFeatureParams, UpdateSettingsParams,
+    GetSyntaxTreeParams, GetSyntaxTreeResult, LoadPluginsParams, OpenFileParams, PullActionsParams,
+    PullActionsResult, PullDiagnosticsParams, PullDiagnosticsResult, RenameParams, RenameResult,
+    SearchPatternParams, SearchResults, SupportsFeatureParams, UpdateSettingsParams,
 };
 
 pub struct WorkspaceClient<T> {
@@ -202,6 +202,10 @@ where
 
     fn rage(&self, params: RageParams) -> Result<RageResult, WorkspaceError> {
         self.request("biome/rage", params)
+    }
+
+    fn load_plugins(&self, params: LoadPluginsParams) -> Result<(), WorkspaceError> {
+        self.request("biome/load_plugins", params)
     }
 
     fn parse_pattern(

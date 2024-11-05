@@ -13,6 +13,7 @@ use biome_formatter::{FormatError, PrintError};
 use biome_fs::{BiomePath, FileSystemDiagnostic};
 use biome_grit_patterns::CompileError;
 use biome_js_analyze::utils::rename::RenameError;
+use biome_plugin_loader::LoadPluginError;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::ffi::OsStr;
@@ -62,6 +63,8 @@ pub enum WorkspaceError {
     ProtectedFile(ProtectedFile),
     /// Error when searching for a pattern
     SearchError(SearchError),
+    /// There was an issue with a plugin
+    PluginError(PluginError),
 }
 
 impl WorkspaceError {
@@ -106,6 +109,10 @@ impl WorkspaceError {
             file_path: file_path.into(),
             verbose_advice: ProtectedFileAdvice,
         })
+    }
+
+    pub fn plugin_not_loaded() -> Self {
+        Self::PluginError(PluginError::NotLoaded(PluginNotLoadedError))
     }
 }
 
@@ -168,6 +175,12 @@ impl From<EditorConfigDiagnostic> for WorkspaceError {
 impl From<CantLoadExtendFile> for WorkspaceError {
     fn from(value: CantLoadExtendFile) -> Self {
         WorkspaceError::Configuration(BiomeDiagnostic::CantLoadExtendFile(value).into())
+    }
+}
+
+impl From<LoadPluginError> for WorkspaceError {
+    fn from(value: LoadPluginError) -> Self {
+        WorkspaceError::PluginError(PluginError::LoadPlugin(value))
     }
 }
 
@@ -324,6 +337,25 @@ impl Diagnostic for SourceFileNotSupported {
         )
     }
 }
+
+#[derive(Debug, Deserialize, Diagnostic, Serialize)]
+pub enum PluginError {
+    /// Error loading the plugin.
+    LoadPlugin(LoadPluginError),
+
+    /// The given plugin is not loaded.
+    NotLoaded(PluginNotLoadedError),
+}
+
+#[derive(Debug, Deserialize, Diagnostic, Serialize)]
+#[diagnostic(
+    category = "plugin",
+    message(
+        message("Plugin not loaded -- this is a bug in Biome."),
+        description = "If this problem persists, please report here: https://github.com/biomejs/biome/issues/"
+    )
+)]
+pub struct PluginNotLoadedError;
 
 #[derive(Debug, Deserialize, Diagnostic, Serialize)]
 pub enum SearchError {
