@@ -1,3 +1,4 @@
+use biome_fs::MemoryFileSystem;
 use js_sys::Error;
 use wasm_bindgen::prelude::*;
 
@@ -32,7 +33,10 @@ impl Workspace {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Workspace {
         Workspace {
-            inner: workspace::server(),
+            // Q: We can't use a real filesystem here, but is the memory
+            // filesystem the right choice? It might be, since I guess it
+            // will allow us to inject plugins if we wanted to.
+            inner: workspace::server(Box::new(MemoryFileSystem::default())),
         }
     }
 

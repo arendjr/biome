@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[test]
 fn should_allow_using_export_statements() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("a.cts");
@@ -18,7 +18,7 @@ fn should_allow_using_export_statements() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("lint"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );

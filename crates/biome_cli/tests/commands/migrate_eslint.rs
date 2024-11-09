@@ -38,13 +38,13 @@ fn migrate_eslintrcjson() {
         "unknownField": "ignored"
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -91,13 +91,13 @@ fn migrate_eslintrc() {
         "unknownField": "ignored"
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -144,13 +144,13 @@ fn migrate_eslintrcjson_write() {
         "unknownField": "ignored"
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint", "--write"].as_slice()),
     );
@@ -197,13 +197,13 @@ fn migrate_eslintrcjson_fix() {
         "unknownField": "ignored"
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint", "--fix"].as_slice()),
     );
@@ -223,13 +223,13 @@ fn migrate_eslintrcjson_override_existing_config() {
     let biomejson = r#"{ "linter": { "rules": { "recommended": true, "suspicious": { "noDoubleEquals": "error" } } } }"#;
     let eslintrc = r#"{ "rules": { "eqeqeq": "off" } }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -249,13 +249,13 @@ fn migrate_eslintrcjson_exclude_inspired() {
     let biomejson = r#"{}"#;
     let eslintrc = r#"{ "rules": { "no-else-return": "error" } }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -275,13 +275,13 @@ fn migrate_eslintrcjson_include_inspired() {
     let biomejson = r#"{}"#;
     let eslintrc = r#"{ "rules": { "no-else-return": "error" } }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint", "--include-inspired"].as_slice()),
     );
@@ -376,13 +376,13 @@ fn migrate_eslintrcjson_rule_options() {
         }]
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint", "--include-inspired"].as_slice()),
     );
@@ -402,13 +402,13 @@ fn migrate_eslintrcjson_empty() {
 "#;
     let eslintrc = r#"{}"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -427,12 +427,12 @@ fn migrate_eslintrcjson_empty() {
 fn migrate_eslintrcjson_missing_biomejson() {
     let eslintrc = r#"{}"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -452,13 +452,13 @@ fn migrate_eslintrcyaml_unsupported() {
     let biomejson = r#"{}"#;
     let eslintrc = "";
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.yaml").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -487,13 +487,13 @@ fn migrate_eslint_config_packagejson() {
         "eslintIgnore": ["/dist", "test", "!test/x/**"]
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new("package.json").into(), packagejson.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -516,13 +516,13 @@ fn migrate_no_eslint_config_packagejson() {
         "version": "0.0.0"
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new("package.json").into(), packagejson.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -549,14 +549,14 @@ fn migrate_eslintignore() {
 test/main.js
 "#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
     fs.insert(Path::new(".eslintignore").into(), eslintignore.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -580,14 +580,14 @@ fn migrate_eslintignore_and_ignore_patterns() {
     }"#;
     let eslintignore = r#"*.test.js"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
     fs.insert(Path::new(".eslintignore").into(), eslintignore.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -611,14 +611,14 @@ a/**
 !a/b
 "#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
     fs.insert(Path::new(".eslintignore").into(), eslintignore.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -645,13 +645,13 @@ fn migrate_eslintrcjson_extended_rules() {
         }
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );
@@ -684,13 +684,13 @@ fn migrate_merge_with_overrides() {
         }]
     }"#;
 
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     fs.insert(Path::new("biome.json").into(), biomejson.as_bytes());
     fs.insert(Path::new(".eslintrc.json").into(), eslintrc.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["migrate", "eslint"].as_slice()),
     );

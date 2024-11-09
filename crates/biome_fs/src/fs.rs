@@ -411,6 +411,8 @@ pub enum ErrorKind {
     DereferencedSymlink(String),
     /// Too deeply nested symbolic link expansion
     DeeplyNestedSymlinkExpansion(String),
+    /// Current working directory is not accessible
+    CantAccessWorkingDir,
 }
 
 impl console::fmt::Display for ErrorKind {
@@ -422,6 +424,7 @@ impl console::fmt::Display for ErrorKind {
             ErrorKind::DeeplyNestedSymlinkExpansion(_) => {
                 fmt.write_str("Deeply nested symlink expansion")
             }
+            ErrorKind::CantAccessWorkingDir => fmt.write_str("Cannot access working directory"),
         }
     }
 }
@@ -435,6 +438,7 @@ impl std::fmt::Display for ErrorKind {
             ErrorKind::DeeplyNestedSymlinkExpansion(_) => {
                 write!(fmt, "Deeply nested symlink expansion")
             }
+            ErrorKind::CantAccessWorkingDir => write!(fmt, "Cannot access working directory"),
         }
     }
 }
@@ -458,6 +462,10 @@ impl Advices for ErrorKind {
             ErrorKind::DeeplyNestedSymlinkExpansion(path) => visitor.record_log(
                 LogCategory::Error,
                 &format!("Biome encountered a file system entry with too many nested symbolic links, possibly forming an infinite cycle: {path}"),
+            ),
+            ErrorKind::CantAccessWorkingDir => visitor.record_log(
+                LogCategory::Error,
+                &"Biome can't access the working directory, maybe for permission reasons or because it no longer exists"
             ),
         }
     }

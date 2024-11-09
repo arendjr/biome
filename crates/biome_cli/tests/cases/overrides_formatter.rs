@@ -32,7 +32,7 @@ const CSS_FORMATTED_SINGLE_QUOTES_AND_SPACES: &str =
 #[test]
 fn does_handle_included_file_and_disable_formatter() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -54,7 +54,7 @@ fn does_handle_included_file_and_disable_formatter() {
     fs.insert(test2.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -84,7 +84,7 @@ fn does_handle_included_file_and_disable_formatter() {
 #[test]
 fn does_include_file_with_different_formatting() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -103,7 +103,7 @@ fn does_include_file_with_different_formatting() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -133,7 +133,7 @@ fn does_include_file_with_different_formatting() {
 #[test]
 fn does_include_file_with_different_formatting_and_all_of_them() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -155,7 +155,7 @@ fn does_include_file_with_different_formatting_and_all_of_them() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -185,7 +185,7 @@ fn does_include_file_with_different_formatting_and_all_of_them() {
 #[test]
 fn does_include_file_with_different_overrides() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -207,7 +207,7 @@ fn does_include_file_with_different_overrides() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -238,7 +238,7 @@ fn does_include_file_with_different_overrides() {
 #[test]
 fn complex_enable_disable_overrides() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -277,7 +277,7 @@ fn complex_enable_disable_overrides() {
     fs.insert(unformatted.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -305,7 +305,7 @@ fn complex_enable_disable_overrides() {
 #[test]
 fn does_include_file_with_different_languages() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -329,7 +329,7 @@ fn does_include_file_with_different_languages() {
     fs.insert(test_css.into(), CSS_UNFORMATTED_QUOTES.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -362,7 +362,7 @@ fn does_include_file_with_different_languages() {
 #[ignore = "Enable when we are ready to handle CSS files"]
 fn does_include_file_with_different_languages_and_files() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -400,7 +400,7 @@ fn does_include_file_with_different_languages_and_files() {
     fs.insert(css_file.into(), UNFORMATTED_CSS.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -434,7 +434,7 @@ fn does_include_file_with_different_languages_and_files() {
 #[test]
 fn does_not_change_formatting_settings() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -456,7 +456,7 @@ fn does_not_change_formatting_settings() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -486,7 +486,7 @@ fn does_not_change_formatting_settings() {
 #[test]
 fn does_not_change_formatting_language_settings() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -508,7 +508,7 @@ fn does_not_change_formatting_language_settings() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -538,7 +538,7 @@ fn does_not_change_formatting_language_settings() {
 #[test]
 fn does_not_change_formatting_language_settings_2() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -560,7 +560,7 @@ fn does_not_change_formatting_language_settings_2() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -590,7 +590,7 @@ fn does_not_change_formatting_language_settings_2() {
 #[test]
 fn does_not_conceal_previous_overrides() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -611,7 +611,7 @@ fn does_not_conceal_previous_overrides() {
     fs.insert(test2.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -635,7 +635,7 @@ fn does_not_conceal_previous_overrides() {
 #[test]
 fn takes_last_formatter_enabled_into_account() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -657,7 +657,7 @@ fn takes_last_formatter_enabled_into_account() {
     fs.insert(test.into(), UNFORMATTED_LINE_WIDTH.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["format", test.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -674,7 +674,7 @@ fn takes_last_formatter_enabled_into_account() {
 #[test]
 fn does_not_override_well_known_special_files_when_config_override_is_present() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -709,7 +709,7 @@ fn does_not_override_well_known_special_files_when_config_override_is_present() 
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -733,7 +733,7 @@ fn does_not_override_well_known_special_files_when_config_override_is_present() 
 #[test]
 fn allow_trailing_commas_on_well_known_files() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -781,7 +781,7 @@ fn allow_trailing_commas_on_well_known_files() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -806,7 +806,7 @@ fn allow_trailing_commas_on_well_known_files() {
 #[test]
 fn disallow_comments_on_well_known_files() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -837,7 +837,7 @@ fn disallow_comments_on_well_known_files() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["check", tsconfig.as_os_str().to_str().unwrap()].as_slice()),
     );

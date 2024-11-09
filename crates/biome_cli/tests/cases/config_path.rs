@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[test]
 fn set_config_path_to_directory() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("src/index.js");
@@ -37,7 +37,7 @@ fn set_config_path_to_directory() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), ("--config-path=config"), ("src")].as_slice()),
     );
@@ -55,7 +55,7 @@ fn set_config_path_to_directory() {
 
 #[test]
 fn set_config_path_to_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("src/index.js");
@@ -84,7 +84,7 @@ fn set_config_path_to_file() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), ("--config-path=config/a.jsonc"), ("src")].as_slice()),
     );

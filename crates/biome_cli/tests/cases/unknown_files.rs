@@ -2,7 +2,6 @@ use crate::snap_test::{assert_cli_snapshot, SnapshotPayload};
 use crate::{run_cli, UNFORMATTED};
 use biome_console::BufferConsole;
 use biome_fs::MemoryFileSystem;
-use biome_service::DynRef;
 use bpaf::Args;
 use std::path::Path;
 
@@ -18,7 +17,7 @@ fn should_print_a_diagnostic_unknown_file() {
     fs.insert(file_path2.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        fs,
         &mut console,
         Args::from(
             [
@@ -59,7 +58,7 @@ fn should_not_print_a_diagnostic_unknown_file_because_ignored() {
     fs.insert(file_path2.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        fs,
         &mut console,
         Args::from(
             [

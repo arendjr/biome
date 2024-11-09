@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[test]
 fn should_use_editorconfig() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -26,7 +26,7 @@ max_line_length = 300
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -53,7 +53,7 @@ max_line_length = 300
 
 #[test]
 fn should_use_editorconfig_enabled_from_biome_conf() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -82,7 +82,7 @@ max_line_length = 300
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -108,7 +108,7 @@ max_line_length = 300
 
 #[test]
 fn should_use_editorconfig_check() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -126,7 +126,7 @@ max_line_length = 300
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -152,7 +152,7 @@ max_line_length = 300
 
 #[test]
 fn should_use_editorconfig_check_enabled_from_biome_conf() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -181,7 +181,7 @@ max_line_length = 300
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), test_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -200,7 +200,7 @@ max_line_length = 300
 
 #[test]
 fn should_have_biome_override_editorconfig() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -232,7 +232,7 @@ indent_style = tab
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -259,7 +259,7 @@ indent_style = tab
 
 #[test]
 fn should_have_cli_override_editorconfig() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -276,7 +276,7 @@ max_line_length = 90
 "#);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -302,7 +302,7 @@ max_line_length = 90
 
 #[test]
 fn should_apply_path_overrides() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -337,7 +337,7 @@ indent_style = space
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -363,7 +363,7 @@ indent_style = space
 
 #[test]
 fn should_use_editorconfig_ci() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -381,7 +381,7 @@ max_line_length = 300
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -407,7 +407,7 @@ max_line_length = 300
 
 #[test]
 fn should_use_editorconfig_ci_enabled_from_biome_conf() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -436,7 +436,7 @@ max_line_length = 300
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), test_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -455,7 +455,7 @@ max_line_length = 300
 
 #[test]
 fn should_emit_diagnostics() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let editorconfig = Path::new(".editorconfig");
@@ -473,7 +473,7 @@ insert_final_newline = false
     fs.insert(test_file.into(), contents);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

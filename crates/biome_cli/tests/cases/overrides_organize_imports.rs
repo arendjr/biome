@@ -14,7 +14,7 @@ import * as something from "../something";"#;
 #[test]
 fn does_handle_included_file_and_disable_organize_imports() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -36,7 +36,7 @@ fn does_handle_included_file_and_disable_organize_imports() {
     fs.insert(test2.into(), UNORGANIZED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

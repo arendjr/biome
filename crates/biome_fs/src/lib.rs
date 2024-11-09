@@ -5,7 +5,7 @@ mod path;
 
 pub use dir::ensure_cache_dir;
 pub use fs::{
-    AutoSearchResult, ConfigName, ErrorEntry, File, FileSystem, FileSystemDiagnostic,
+    AutoSearchResult, ConfigName, ErrorEntry, ErrorKind, File, FileSystem, FileSystemDiagnostic,
     FileSystemExt, MemoryFileSystem, OpenOptions, OsFileSystem, TraversalContext, TraversalScope,
 };
 pub use interner::PathInterner;

@@ -9,7 +9,7 @@ use std::path::Path;
 
 #[test]
 fn extends_config_ok_formatter_no_linter() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = Path::new("biome.json");
@@ -29,7 +29,7 @@ fn extends_config_ok_formatter_no_linter() {
     fs.insert(test_file.into(), r#"debugger; console.log("string"); "#);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), test_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -47,7 +47,7 @@ fn extends_config_ok_formatter_no_linter() {
 
 #[test]
 fn extends_config_ok_linter_not_formatter() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = Path::new("biome.json");
@@ -77,7 +77,7 @@ fn extends_config_ok_linter_not_formatter() {
     fs.insert(test_file.into(), r#"debugger; console.log("string"); "#);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), test_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -95,7 +95,7 @@ fn extends_config_ok_linter_not_formatter() {
 
 #[test]
 fn extends_should_raise_an_error_for_unresolved_configuration() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = Path::new("biome.json");
@@ -115,7 +115,7 @@ fn extends_should_raise_an_error_for_unresolved_configuration() {
     fs.insert(test_file.into(), r#"debugger; console.log("string"); "#);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), test_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -133,7 +133,7 @@ fn extends_should_raise_an_error_for_unresolved_configuration() {
 
 #[test]
 fn extends_should_raise_an_error_for_unresolved_configuration_and_show_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = Path::new("biome.json");
@@ -153,7 +153,7 @@ fn extends_should_raise_an_error_for_unresolved_configuration_and_show_verbose()
     fs.insert(test_file.into(), r#"debugger; console.log("string"); "#);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -178,7 +178,7 @@ fn extends_should_raise_an_error_for_unresolved_configuration_and_show_verbose()
 
 #[test]
 fn extends_resolves_when_using_config_path() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = Path::new("config/biome.json");
@@ -198,7 +198,7 @@ fn extends_resolves_when_using_config_path() {
     fs.insert(test_file.into(), r#"debugger; console.log("string"); "#);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -223,7 +223,7 @@ fn extends_resolves_when_using_config_path() {
 
 #[test]
 fn applies_extended_values_in_current_config() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let format = Path::new("format.json");
@@ -245,7 +245,7 @@ fn applies_extended_values_in_current_config() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -270,7 +270,7 @@ fn applies_extended_values_in_current_config() {
 
 #[test]
 fn respects_unaffected_values_from_extended_config() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let format = Path::new("format.json");
@@ -289,7 +289,7 @@ fn respects_unaffected_values_from_extended_config() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -314,7 +314,7 @@ fn respects_unaffected_values_from_extended_config() {
 
 #[test]
 fn allows_reverting_fields_in_extended_config_to_default() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let format = Path::new("format.json");
@@ -336,7 +336,7 @@ fn allows_reverting_fields_in_extended_config_to_default() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -361,7 +361,7 @@ fn allows_reverting_fields_in_extended_config_to_default() {
 
 #[test]
 fn extends_config_merge_overrides() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let shared = Path::new("shared.json");
@@ -391,7 +391,7 @@ fn extends_config_merge_overrides() {
     fs.insert(test_file.into(), "debugger; const a = 0;");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["lint", test_file.as_os_str().to_str().unwrap()].as_slice()),
     );

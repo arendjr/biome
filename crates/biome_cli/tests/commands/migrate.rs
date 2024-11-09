@@ -8,11 +8,11 @@ use std::path::Path;
 
 #[test]
 fn migrate_help() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "--help"].as_slice()),
     );
@@ -30,7 +30,7 @@ fn migrate_help() {
 
 #[test]
 fn migrate_config_up_to_date() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -39,7 +39,7 @@ fn migrate_config_up_to_date() {
     fs.insert(configuration_path.into(), configuration.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate")].as_slice()),
     );
@@ -59,11 +59,11 @@ fn migrate_config_up_to_date() {
 
 #[test]
 fn missing_configuration_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate")].as_slice()),
     );
@@ -81,7 +81,7 @@ fn missing_configuration_file() {
 
 #[test]
 fn should_emit_incompatible_arguments_error() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -89,7 +89,7 @@ fn should_emit_incompatible_arguments_error() {
     fs.insert(configuration_path.into(), configuration.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "--write", "--fix"].as_slice()),
     );

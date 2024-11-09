@@ -10,7 +10,7 @@ use biome_diagnostics::{
     MessageAndDescription, Severity, Visit,
 };
 use biome_formatter::{FormatError, PrintError};
-use biome_fs::{BiomePath, FileSystemDiagnostic};
+use biome_fs::{BiomePath, ErrorKind, FileSystemDiagnostic};
 use biome_grit_patterns::CompileError;
 use biome_js_analyze::utils::rename::RenameError;
 use biome_plugin_loader::LoadPluginError;
@@ -74,6 +74,14 @@ impl WorkspaceError {
 
     pub fn cant_read_file(path: String) -> Self {
         Self::CantReadFile(CantReadFile { path })
+    }
+
+    pub fn cant_access_working_dir() -> Self {
+        Self::FileSystem(FileSystemDiagnostic {
+            error_kind: ErrorKind::CantAccessWorkingDir,
+            path: String::new(),
+            severity: Severity::Fatal,
+        })
     }
 
     pub fn not_found() -> Self {

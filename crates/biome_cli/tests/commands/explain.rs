@@ -8,11 +8,11 @@ use biome_service::DynRef;
 
 #[test]
 fn explain_help() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("explain"), "--help"].as_slice()),
     );
@@ -30,11 +30,11 @@ fn explain_help() {
 
 #[test]
 fn explain_valid_rule() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("explain"), "noBlankTarget"].as_slice()),
     );
@@ -52,11 +52,11 @@ fn explain_valid_rule() {
 
 #[test]
 fn explain_not_found() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("explain"), "dontExists"].as_slice()),
     );
@@ -74,11 +74,11 @@ fn explain_not_found() {
 
 #[test]
 fn explain_logs() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("explain"), "daemon-logs"].as_slice()),
     );

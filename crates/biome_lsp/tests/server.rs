@@ -8,7 +8,6 @@ use biome_lsp::ServerFactory;
 use biome_lsp::WorkspaceSettings;
 use biome_service::workspace::GetSyntaxTreeResult;
 use biome_service::workspace::{GetFileContentParams, GetSyntaxTreeParams};
-use biome_service::DynRef;
 use futures::channel::mpsc::{channel, Sender};
 use futures::Sink;
 use futures::SinkExt;
@@ -1472,7 +1471,7 @@ async fn pull_diagnostics_for_rome_json() -> Result<()> {
 #[tokio::test]
 async fn pull_diagnostics_for_css_files() -> Result<()> {
     let factory = ServerFactory::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let config = r#"{
         "css": {
             "linter": { "enabled": true }
@@ -1483,9 +1482,7 @@ async fn pull_diagnostics_for_css_files() -> Result<()> {
     }"#;
 
     fs.insert(url!("biome.json").to_file_path().unwrap(), config);
-    let (service, client) = factory
-        .create_with_fs(None, DynRef::Owned(Box::new(fs)))
-        .into_inner();
+    let (service, client) = factory.create_with_fs(None, Box::new(fs)).into_inner();
 
     let (stream, sink) = client.split();
     let mut server = Server::new(service);
@@ -2316,7 +2313,7 @@ async fn format_jsx_in_javascript_file() -> Result<()> {
 #[tokio::test]
 async fn does_not_format_ignored_files() -> Result<()> {
     let factory = ServerFactory::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let config = r#"{
         "files": {
             "ignore": ["document.js"]
@@ -2324,9 +2321,7 @@ async fn does_not_format_ignored_files() -> Result<()> {
     }"#;
 
     fs.insert(url!("biome.json").to_file_path().unwrap(), config);
-    let (service, client) = factory
-        .create_with_fs(None, DynRef::Owned(Box::new(fs)))
-        .into_inner();
+    let (service, client) = factory.create_with_fs(None, Box::new(fs)).into_inner();
     let (stream, sink) = client.split();
     let mut server = Server::new(service);
 

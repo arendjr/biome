@@ -58,7 +58,7 @@ const MAIN_3: &str = r#"
 
 #[test]
 fn reports_diagnostics_summary_check_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -71,7 +71,7 @@ fn reports_diagnostics_summary_check_command() {
     fs.insert(file_path3.into(), MAIN_3.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -99,7 +99,7 @@ fn reports_diagnostics_summary_check_command() {
 
 #[test]
 fn reports_diagnostics_summary_ci_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -112,7 +112,7 @@ fn reports_diagnostics_summary_ci_command() {
     fs.insert(file_path3.into(), MAIN_3.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -140,7 +140,7 @@ fn reports_diagnostics_summary_ci_command() {
 
 #[test]
 fn reports_diagnostics_summary_lint_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -153,7 +153,7 @@ fn reports_diagnostics_summary_lint_command() {
     fs.insert(file_path3.into(), MAIN_3.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -181,7 +181,7 @@ fn reports_diagnostics_summary_lint_command() {
 
 #[test]
 fn reports_diagnostics_summary_format_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -194,7 +194,7 @@ fn reports_diagnostics_summary_format_command() {
     fs.insert(file_path3.into(), MAIN_3.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

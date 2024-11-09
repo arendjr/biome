@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[test]
 fn prettier_migrate() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -21,7 +21,7 @@ fn prettier_migrate() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );
@@ -39,7 +39,7 @@ fn prettier_migrate() {
 
 #[test]
 fn prettier_migrate_end_of_line() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{}"#;
@@ -52,7 +52,7 @@ fn prettier_migrate_end_of_line() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );
@@ -70,7 +70,7 @@ fn prettier_migrate_end_of_line() {
 
 #[test]
 fn prettier_migrate_with_ignore() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -94,7 +94,7 @@ generated/*.spec.js
     fs.insert(prettier_ignore_path.into(), prettier_ignore.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );
@@ -112,7 +112,7 @@ generated/*.spec.js
 
 #[test]
 fn prettier_migrate_jsonc() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -125,7 +125,7 @@ fn prettier_migrate_jsonc() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );
@@ -143,7 +143,7 @@ fn prettier_migrate_jsonc() {
 
 #[test]
 fn prettier_migrate_no_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -152,7 +152,7 @@ fn prettier_migrate_no_file() {
     fs.insert(configuration_path.into(), configuration.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );
@@ -170,7 +170,7 @@ fn prettier_migrate_no_file() {
 
 #[test]
 fn prettier_migrate_yml_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -183,7 +183,7 @@ fn prettier_migrate_yml_file() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );
@@ -201,7 +201,7 @@ fn prettier_migrate_yml_file() {
 
 #[test]
 fn prettier_migrate_write() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -214,7 +214,7 @@ fn prettier_migrate_write() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier", "--write"].as_slice()),
     );
@@ -232,7 +232,7 @@ fn prettier_migrate_write() {
 
 #[test]
 fn prettier_migrate_fix() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -245,7 +245,7 @@ fn prettier_migrate_fix() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier", "--fix"].as_slice()),
     );
@@ -263,7 +263,7 @@ fn prettier_migrate_fix() {
 
 #[test]
 fn prettierjson_migrate_write() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -276,7 +276,7 @@ fn prettierjson_migrate_write() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier", "--write"].as_slice()),
     );
@@ -294,7 +294,7 @@ fn prettierjson_migrate_write() {
 
 #[test]
 fn prettier_migrate_write_packagejson() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -311,7 +311,7 @@ fn prettier_migrate_write_packagejson() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier", "--write"].as_slice()),
     );
@@ -329,7 +329,7 @@ fn prettier_migrate_write_packagejson() {
 
 #[test]
 fn prettier_migrate_write_with_ignore_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -353,7 +353,7 @@ generated/*.spec.js
     fs.insert(prettier_ignore_path.into(), prettier_ignore.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier", "--write"].as_slice()),
     );
@@ -371,7 +371,7 @@ generated/*.spec.js
 
 #[test]
 fn prettier_migrate_write_biome_jsonc() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "linter": { "enabled": true } }"#;
@@ -384,7 +384,7 @@ fn prettier_migrate_write_biome_jsonc() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier", "--write"].as_slice()),
     );
@@ -402,7 +402,7 @@ fn prettier_migrate_write_biome_jsonc() {
 
 #[test]
 fn prettier_migrate_overrides() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = r#"{ "formatter": { "enabled": true } }"#;
@@ -426,7 +426,7 @@ fn prettier_migrate_overrides() {
     fs.insert(prettier_path.into(), prettier.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("migrate"), "prettier"].as_slice()),
     );

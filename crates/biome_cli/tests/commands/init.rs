@@ -8,11 +8,11 @@ use std::path::Path;
 
 #[test]
 fn init_help() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("init"), "--help"].as_slice()),
     );
@@ -30,11 +30,11 @@ fn init_help() {
 
 #[test]
 fn creates_config_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("init")].as_slice()),
     );
@@ -51,11 +51,11 @@ fn creates_config_file() {
 
 #[test]
 fn creates_config_jsonc_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("init"), "--jsonc"].as_slice()),
     );
@@ -72,14 +72,14 @@ fn creates_config_jsonc_file() {
 
 #[test]
 fn creates_config_file_when_biome_installed_via_package_manager() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("./node_modules/@biomejs/biome/configuration_schema.json");
     fs.insert(file_path.into(), *b"{}");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("init")].as_slice()),
     );
@@ -95,14 +95,14 @@ fn creates_config_file_when_biome_installed_via_package_manager() {
 
 #[test]
 fn does_not_create_config_file_if_json_exists() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
     fs.insert(file_path.into(), *b"{}");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("init")].as_slice()),
     );
@@ -120,14 +120,14 @@ fn does_not_create_config_file_if_json_exists() {
 
 #[test]
 fn does_not_create_config_file_if_jsonc_exists() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.jsonc");
     fs.insert(file_path.into(), *b"{}");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("init")].as_slice()),
     );

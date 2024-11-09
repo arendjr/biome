@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[test]
 fn should_not_format_files_by_default() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let css_file_content = r#"html {}"#;
@@ -16,7 +16,7 @@ fn should_not_format_files_by_default() {
     fs.insert(css_file.into(), css_file_content.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("format"), css_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -35,7 +35,7 @@ fn should_not_format_files_by_default() {
 
 #[test]
 fn should_format_files_by_when_opt_in() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let css_file_content = r#"html {}"#;
@@ -43,7 +43,7 @@ fn should_format_files_by_when_opt_in() {
     fs.insert(css_file.into(), css_file_content.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -69,7 +69,7 @@ fn should_format_files_by_when_opt_in() {
 
 #[test]
 fn should_format_write_files_by_when_opt_in() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let css_file_content = r#"html {}"#;
@@ -77,7 +77,7 @@ fn should_format_write_files_by_when_opt_in() {
     fs.insert(css_file.into(), css_file_content.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -103,7 +103,7 @@ fn should_format_write_files_by_when_opt_in() {
 
 #[test]
 fn should_not_lint_files_by_default() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -121,7 +121,7 @@ fn should_not_lint_files_by_default() {
     fs.insert(css_file.into(), css_file_content.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["lint", css_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -140,7 +140,7 @@ fn should_not_lint_files_by_default() {
 
 #[test]
 fn should_lint_files_by_when_enabled() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -158,7 +158,7 @@ fn should_lint_files_by_when_enabled() {
     fs.insert(css_file.into(), css_file_content.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

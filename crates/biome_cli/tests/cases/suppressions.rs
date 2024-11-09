@@ -12,14 +12,14 @@ const SUPPRESS_AFTER: &str =
 
 #[test]
 fn ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("check.js");
     fs.insert(file_path.into(), FORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -43,7 +43,7 @@ fn err_when_both_write_and_suppress_are_passed() {
     fs.insert(file_path.into(), FORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -68,14 +68,14 @@ fn err_when_both_write_and_suppress_are_passed() {
 
 #[test]
 fn suppress_ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("fix.js");
     fs.insert(file_path.into(), SUPPRESS_BEFORE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -108,7 +108,7 @@ fn suppress_ok() {
 
 #[test]
 fn suppress_multiple_ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("fix.js");
@@ -118,7 +118,7 @@ fn suppress_multiple_ok() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -151,14 +151,14 @@ fn suppress_multiple_ok() {
 
 #[test]
 fn suppress_only_ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("fix.js");
     fs.insert(file_path.into(), SUPPRESS_BEFORE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -192,14 +192,14 @@ fn suppress_only_ok() {
 
 #[test]
 fn suppress_skip_ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("fix.js");
     fs.insert(file_path.into(), SUPPRESS_BEFORE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -233,7 +233,7 @@ fn suppress_skip_ok() {
 
 #[test]
 fn unused_suppression_after_top_level() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.js");
@@ -252,7 +252,7 @@ let bar = 33;",
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("lint"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );

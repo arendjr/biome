@@ -1,5 +1,11 @@
 use super::{
-    ChangeFileParams, CloseFileParams, FeatureKind, FeatureName, FixFileResult, FormatFileParams, FormatOnTypeParams, FormatRangeParams, GetControlFlowGraphParams, GetFormatterIRParams, GetSyntaxTreeParams, GetSyntaxTreeResult, LoadPluginsParams, OpenFileParams, ParsePatternParams, ParsePatternResult, PatternId, PluginId, ProjectKey, PullActionsParams, PullActionsResult, PullDiagnosticsParams, PullDiagnosticsResult, RegisterProjectFolderParams, RenameResult, SearchPatternParams, SearchResults, SetManifestForProjectParams, SupportsFeatureParams, UnregisterProjectFolderParams, UpdateSettingsParams
+    ChangeFileParams, CloseFileParams, FeatureKind, FeatureName, FixFileResult, FormatFileParams,
+    FormatOnTypeParams, FormatRangeParams, GetControlFlowGraphParams, GetFormatterIRParams,
+    GetSyntaxTreeParams, GetSyntaxTreeResult, OpenFileParams, ParsePatternParams,
+    ParsePatternResult, PatternId, ProjectKey, PullActionsParams, PullActionsResult,
+    PullDiagnosticsParams, PullDiagnosticsResult, RegisterProjectFolderParams, RenameResult,
+    SearchPatternParams, SearchResults, SetManifestForProjectParams, SupportsFeatureParams,
+    UnregisterProjectFolderParams, UpdateSettingsParams,
 };
 use crate::diagnostics::{InvalidPattern, SearchError};
 use crate::file_handlers::{
@@ -19,7 +25,7 @@ use biome_diagnostics::{
     serde::Diagnostic as SerdeDiagnostic, Diagnostic, DiagnosticExt, Severity,
 };
 use biome_formatter::Printed;
-use biome_fs::{BiomePath, ConfigName};
+use biome_fs::{BiomePath, ConfigName, FileSystem};
 use biome_grit_patterns::{compile_pattern_with_options, CompilePatternOptions, GritQuery};
 use biome_js_syntax::ModuleKind;
 use biome_json_parser::{parse_json_with_cache, JsonParserOptions};
@@ -53,7 +59,9 @@ pub(super) struct WorkspaceServer {
     /// Stores patterns to search for.
     patterns: DashMap<PatternId, GritQuery>,
     /// Loaded plugins.
-    plugins: DashMap<PluginId, BiomePlugin>,
+    plugins: DashMap<String, BiomePlugin>,
+    /// File system implementation.
+    fs: Box<dyn FileSystem>,
 }
 
 /// The `Workspace` object is long-lived, so we want it to be able to cross
@@ -80,7 +88,7 @@ impl WorkspaceServer {
     /// This is implemented as a crate-private method instead of using
     /// [Default] to disallow instances of [Workspace] from being created
     /// outside a [crate::App]
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(fs: Box<dyn FileSystem>) -> Self {
         Self {
             features: Features::new(),
             settings: RwLock::default(),
@@ -90,6 +98,7 @@ impl WorkspaceServer {
             file_sources: RwLock::default(),
             patterns: Default::default(),
             plugins: Default::default(),
+            fs,
         }
     }
 
@@ -121,20 +130,18 @@ impl WorkspaceServer {
 
     /// Return an error factory function for unsupported features at a given path
     fn build_capability_error<'a>(
-        &'a self,
+        &self,
         path: &'a BiomePath,
         // feature_name: &'a str,
-    ) -> impl FnOnce() -> WorkspaceError + 'a {
-        move || {
-            let file_source = self.get_file_source(path);
+    ) -> impl FnOnce() -> WorkspaceError + use<'a> {
+        let file_source = self.get_file_source(path);
+        let language = DocumentFileSource::from_path(path).or(file_source);
 
-            let language = DocumentFileSource::from_path(path).or(file_source);
+        move || {
             WorkspaceError::source_file_not_supported(
                 language,
                 path.display().to_string(),
-                path.extension()
-                    .and_then(OsStr::to_str)
-                    .map(|s| s.to_string()),
+                path.extension().and_then(OsStr::to_str).map(str::to_owned),
             )
         }
     }
@@ -362,34 +369,18 @@ impl WorkspaceServer {
         !is_feature_included || feature_ignored_files.matches_path(path)
     }
 
-    fn get_analyzer_plugins(
-        &self,
-        plugins: &[PluginId],
-    ) -> Result<Vec<Box<dyn AnalyzerPlugin>>, WorkspaceError> {
-        let plugins = plugins
-            .iter()
-            .map(|plugin_id| {
-                self.plugins
-                    .get(plugin_id)
-                    .map(|plugin| {
-                        plugin
-                            .analyzer_plugins
-                            .iter()
-                            .map(|plugin| AnalyzerPlugin::clone(plugin.as_ref()))
-                            .collect::<Vec<_>>()
-                    })
-                    .ok_or_else(WorkspaceError::plugin_not_loaded)
-            })
-            .collect::<Result<Vec<_>, WorkspaceError>>()?
-            .into_iter()
-            .flatten()
-            .collect();
+    fn get_analyzer_plugins(&self) -> Result<Vec<Box<dyn AnalyzerPlugin>>, WorkspaceError> {
+        let plugins = Vec::new();
 
         Ok(plugins)
     }
 }
 
 impl Workspace for WorkspaceServer {
+    fn fs(&self) -> &dyn FileSystem {
+        self.fs.as_ref()
+    }
+
     fn file_features(
         &self,
         params: SupportsFeatureParams,
@@ -644,8 +635,8 @@ impl Workspace for WorkspaceServer {
         params: PullDiagnosticsParams,
     ) -> Result<PullDiagnosticsResult, WorkspaceError> {
         let parse = self.get_parse(params.path.clone())?;
-        let plugins = self.get_analyzer_plugins(&params.plugins)?;
         let manifest = self.get_current_manifest()?;
+        let plugins = self.get_analyzer_plugins()?;
         let (diagnostics, errors, skipped_diagnostics) =
             if let Some(lint) = self.get_file_capabilities(&params.path).analyzer.lint {
                 info_span!("Pulling diagnostics", categories =? params.categories).in_scope(|| {
@@ -837,19 +828,6 @@ impl Workspace for WorkspaceServer {
         ];
 
         Ok(RageResult { entries })
-    }
-
-    fn load_plugins(&self, params: LoadPluginsParams) -> Result<(), WorkspaceError> {
-        for plugin_id in params.plugins {
-            let plugin = BiomePlugin::load(
-                self.workspace().,
-                plugin_path,
-                relative_resolution_base_path,
-                external_resolution_base_path,
-            )?;
-        }
-
-        Ok(())
     }
 
     fn parse_pattern(

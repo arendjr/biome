@@ -8,13 +8,13 @@ use std::path::Path;
 
 #[test]
 fn not_process_file_from_stdin_format() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     console.in_buffer.push(r#"{ "name": "test" }"#.to_string());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("format"), ("--stdin-file-path=package-lock.json")].as_slice()),
     );
@@ -32,13 +32,13 @@ fn not_process_file_from_stdin_format() {
 
 #[test]
 fn not_process_file_from_stdin_lint() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     console.in_buffer.push(r#"{ "name": "test" }"#.to_string());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("lint"), ("--stdin-file-path=package.json")].as_slice()),
     );
@@ -56,13 +56,13 @@ fn not_process_file_from_stdin_lint() {
 
 #[test]
 fn not_process_file_from_stdin_verbose_format() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     console.in_buffer.push(r#"{ "name": "test" }"#.to_string());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -87,13 +87,13 @@ fn not_process_file_from_stdin_verbose_format() {
 
 #[test]
 fn not_process_file_from_stdin_verbose_lint() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     console.in_buffer.push(r#"{ "name": "test" }"#.to_string());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -118,14 +118,14 @@ fn not_process_file_from_stdin_verbose_lint() {
 
 #[test]
 fn not_process_file_from_cli() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("package-lock.json");
     fs.insert(file_path.into(), r#"{ "name": "test" }"#.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("format"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -143,14 +143,14 @@ fn not_process_file_from_cli() {
 
 #[test]
 fn not_process_file_from_cli_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("package-lock.json");
     fs.insert(file_path.into(), r#"{ "name": "test" }"#.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -175,7 +175,7 @@ fn not_process_file_from_cli_verbose() {
 
 #[test]
 fn not_process_ignored_file_from_cli_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("package.json");
@@ -191,7 +191,7 @@ fn not_process_ignored_file_from_cli_verbose() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -216,7 +216,7 @@ fn not_process_ignored_file_from_cli_verbose() {
 
 #[test]
 fn not_process_file_linter_disabled_from_cli_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("package.json");
@@ -232,7 +232,7 @@ fn not_process_file_linter_disabled_from_cli_verbose() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -257,14 +257,14 @@ fn not_process_file_linter_disabled_from_cli_verbose() {
 
 #[test]
 fn should_return_the_content_of_protected_files_via_stdin() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
     console
         .in_buffer
         .push(r#"{ "name": "something" }"#.to_string());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("format"), ("--stdin-file-path"), ("package-lock.json")].as_slice()),
     );

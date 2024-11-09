@@ -33,11 +33,11 @@ const CI_CONFIGURATION: &str = r#"
 
 #[test]
 fn ci_help() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), "--help"].as_slice()),
     );
@@ -55,14 +55,14 @@ fn ci_help() {
 
 #[test]
 fn ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), FORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -86,14 +86,14 @@ fn ok() {
 
 #[test]
 fn formatting_error() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -111,14 +111,14 @@ fn formatting_error() {
 
 #[test]
 fn ci_parse_error() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), PARSE_ERROR.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -135,14 +135,14 @@ fn ci_parse_error() {
 
 #[test]
 fn ci_lint_error() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), LINT_ERROR.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -160,7 +160,7 @@ fn ci_lint_error() {
 
 #[test]
 fn ci_does_not_run_formatter() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     fs.insert(
@@ -173,7 +173,7 @@ fn ci_does_not_run_formatter() {
     fs.insert(input_file.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), input_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -193,7 +193,7 @@ fn ci_does_not_run_formatter() {
 
 #[test]
 fn ci_does_not_run_formatter_biome_jsonc() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     fs.insert(
@@ -206,7 +206,7 @@ fn ci_does_not_run_formatter_biome_jsonc() {
     fs.insert(input_file.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), input_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -226,14 +226,14 @@ fn ci_does_not_run_formatter_biome_jsonc() {
 
 #[test]
 fn ci_does_not_run_formatter_via_cli() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let input_file = Path::new("file.js");
     fs.insert(input_file.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -260,7 +260,7 @@ fn ci_does_not_run_formatter_via_cli() {
 
 #[test]
 fn ci_does_not_run_linter() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     fs.insert(
@@ -272,7 +272,7 @@ fn ci_does_not_run_linter() {
     fs.insert(file_path.into(), CUSTOM_FORMAT_BEFORE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -292,14 +292,14 @@ fn ci_does_not_run_linter() {
 
 #[test]
 fn ci_does_not_run_linter_via_cli() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.js");
     fs.insert(file_path.into(), UNFORMATTED_AND_INCORRECT.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -326,7 +326,7 @@ fn ci_does_not_run_linter_via_cli() {
 
 #[test]
 fn ci_does_not_organize_imports_via_cli() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.js");
@@ -337,7 +337,7 @@ import * as something from "../something";
     fs.insert(file_path.into(), content.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -364,7 +364,7 @@ import * as something from "../something";
 
 #[test]
 fn ci_errors_for_all_disabled_checks() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -374,7 +374,7 @@ fn ci_errors_for_all_disabled_checks() {
     fs.insert(file_path.into(), UNFORMATTED_AND_INCORRECT.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -403,14 +403,14 @@ fn ci_errors_for_all_disabled_checks() {
 
 #[test]
 fn file_too_large() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), "statement();\n".repeat(80660).as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -431,7 +431,7 @@ fn file_too_large() {
 
 #[test]
 fn file_too_large_config_limit() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     fs.insert(PathBuf::from("biome.json"), CONFIG_FILE_SIZE_LIMIT);
@@ -440,7 +440,7 @@ fn file_too_large_config_limit() {
     fs.insert(file_path.into(), "statement1();\nstatement2();");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -458,14 +458,14 @@ fn file_too_large_config_limit() {
 
 #[test]
 fn file_too_large_cli_limit() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), "statement1();\nstatement2();");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -490,14 +490,14 @@ fn file_too_large_cli_limit() {
 
 #[test]
 fn files_max_size_parse_error() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), "statement1();\nstatement2();");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -522,7 +522,7 @@ fn files_max_size_parse_error() {
 
 #[test]
 fn ci_runs_linter_not_formatter_issue_3495() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -532,7 +532,7 @@ fn ci_runs_linter_not_formatter_issue_3495() {
     fs.insert(file_path.into(), INCORRECT_CODE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -550,7 +550,7 @@ fn ci_runs_linter_not_formatter_issue_3495() {
 
 #[test]
 fn max_diagnostics_default() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     for i in 0..60 {
@@ -559,7 +559,7 @@ fn max_diagnostics_default() {
     }
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), ("src")].as_slice()),
     );
@@ -606,7 +606,7 @@ fn max_diagnostics_default() {
 
 #[test]
 fn max_diagnostics() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     for i in 0..60 {
@@ -615,7 +615,7 @@ fn max_diagnostics() {
     }
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), ("--max-diagnostics"), ("10"), ("src")].as_slice()),
     );
@@ -661,14 +661,14 @@ fn max_diagnostics() {
 
 #[test]
 fn print_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), LINT_ERROR.as_bytes());
 
     let mut console = BufferConsole::default();
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -693,7 +693,7 @@ fn print_verbose() {
 
 #[test]
 fn ci_formatter_linter_organize_imports() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = r#"{
@@ -731,7 +731,7 @@ something( )
     fs.insert(file_path.into(), input.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -751,7 +751,7 @@ something( )
 
 #[test]
 fn ignore_vcs_ignored_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let rome_json = r#"{
@@ -784,7 +784,7 @@ file2.js
     fs.insert(ignore_file.into(), git_ignore.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -809,7 +809,7 @@ file2.js
 
 #[test]
 fn ignore_vcs_ignored_file_via_cli() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let git_ignore = r#"
@@ -833,7 +833,7 @@ file2.js
     fs.insert(ignore_file.into(), git_ignore.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -862,7 +862,7 @@ file2.js
 
 #[test]
 fn ignores_unknown_file() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("test.txt");
@@ -872,7 +872,7 @@ fn ignores_unknown_file() {
     fs.insert(file_path2.into(), *b"console.log('bar');\n");
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -896,7 +896,7 @@ fn ignores_unknown_file() {
 
 #[test]
 fn correctly_handles_ignored_and_not_ignored_files() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let configuration = Path::new("biome.json");
@@ -925,7 +925,7 @@ fn correctly_handles_ignored_and_not_ignored_files() {
     fs.insert(file_path3.into(), UNFORMATTED_AND_INCORRECT.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -950,10 +950,10 @@ fn correctly_handles_ignored_and_not_ignored_files() {
 #[test]
 fn doesnt_error_if_no_files_were_processed() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), "--no-errors-on-unmatched", ("file.js")].as_slice()),
     );
@@ -972,7 +972,7 @@ fn doesnt_error_if_no_files_were_processed() {
 #[test]
 fn does_error_with_only_warnings() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
 
     let file_path = Path::new("biome.json");
     fs.insert(
@@ -1003,7 +1003,7 @@ A = 0;
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -1028,14 +1028,14 @@ A = 0;
 
 #[test]
 fn does_formatting_error_without_file_paths() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("ci.js");
     fs.insert(file_path.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), ""].as_slice()),
     );
@@ -1054,14 +1054,14 @@ fn does_formatting_error_without_file_paths() {
 #[test]
 fn should_error_if_unchanged_files_only_with_changed_flag() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     // Unchanged
     fs.insert(
         Path::new("file1.js").into(),
         r#"console.log('file1');"#.as_bytes(),
     );
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), "--changed", "--since=main"].as_slice()),
     );

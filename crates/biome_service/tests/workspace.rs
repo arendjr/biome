@@ -2,7 +2,7 @@
 mod test {
     use biome_analyze::RuleCategories;
     use biome_configuration::analyzer::{RuleGroup, RuleSelector};
-    use biome_fs::BiomePath;
+    use biome_fs::{BiomePath, OsFileSystem};
     use biome_js_syntax::{JsFileSource, TextSize};
     use biome_service::file_handlers::DocumentFileSource;
     use biome_service::workspace::{
@@ -11,7 +11,7 @@ mod test {
     use biome_service::Workspace;
 
     fn create_server() -> Box<dyn Workspace> {
-        let workspace = server();
+        let workspace = server(Box::new(OsFileSystem::default()));
         workspace
             .register_project_folder(RegisterProjectFolderParams {
                 set_as_current_workspace: true,
@@ -243,7 +243,6 @@ type User {
                 RuleGroup::Nursery,
                 "useDeprecatedReason",
             )],
-            vec![],
             vec![],
         );
         assert!(result.is_ok());

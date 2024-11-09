@@ -5,6 +5,7 @@ use crate::workspace::{
 };
 use crate::{TransportError, Workspace, WorkspaceError};
 use biome_formatter::Printed;
+use biome_fs::FileSystem;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::{
@@ -15,15 +16,16 @@ use std::{
 use super::{
     ChangeFileParams, CloseFileParams, FixFileParams, FixFileResult, FormatFileParams,
     FormatOnTypeParams, FormatRangeParams, GetControlFlowGraphParams, GetFormatterIRParams,
-    GetSyntaxTreeParams, GetSyntaxTreeResult, LoadPluginsParams, OpenFileParams, PullActionsParams,
-    PullActionsResult, PullDiagnosticsParams, PullDiagnosticsResult, RenameParams, RenameResult,
-    SearchPatternParams, SearchResults, SupportsFeatureParams, UpdateSettingsParams,
+    GetSyntaxTreeParams, GetSyntaxTreeResult, OpenFileParams, PullActionsParams, PullActionsResult,
+    PullDiagnosticsParams, PullDiagnosticsResult, RenameParams, RenameResult, SearchPatternParams,
+    SearchResults, SupportsFeatureParams, UpdateSettingsParams,
 };
 
 pub struct WorkspaceClient<T> {
     transport: T,
     request_id: AtomicU64,
     server_info: Option<ServerInfo>,
+    fs: Box<dyn FileSystem>,
 }
 
 pub trait WorkspaceTransport {
@@ -52,11 +54,12 @@ impl<T> WorkspaceClient<T>
 where
     T: WorkspaceTransport + RefUnwindSafe + Send + Sync,
 {
-    pub fn new(transport: T) -> Result<Self, WorkspaceError> {
+    pub fn new(transport: T, fs: Box<dyn FileSystem>) -> Result<Self, WorkspaceError> {
         let mut client = Self {
             transport,
             request_id: AtomicU64::new(0),
             server_info: None,
+            fs,
         };
 
         // TODO: The current implementation of the JSON-RPC protocol in
@@ -101,6 +104,10 @@ impl<T> Workspace for WorkspaceClient<T>
 where
     T: WorkspaceTransport + RefUnwindSafe + Send + Sync,
 {
+    fn fs(&self) -> &dyn FileSystem {
+        self.fs.as_ref()
+    }
+
     fn file_features(
         &self,
         params: SupportsFeatureParams,
@@ -202,10 +209,6 @@ where
 
     fn rage(&self, params: RageParams) -> Result<RageResult, WorkspaceError> {
         self.request("biome/rage", params)
-    }
-
-    fn load_plugins(&self, params: LoadPluginsParams) -> Result<(), WorkspaceError> {
-        self.request("biome/load_plugins", params)
     }
 
     fn parse_pattern(

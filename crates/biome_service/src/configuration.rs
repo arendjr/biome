@@ -1,6 +1,6 @@
 use crate::matcher::Pattern;
 use crate::settings::Settings;
-use crate::{DynRef, WorkspaceError};
+use crate::WorkspaceError;
 use biome_analyze::AnalyzerRules;
 use biome_configuration::diagnostics::{CantLoadExtendFile, EditorConfigDiagnostic};
 use biome_configuration::{push_to_analyzer_assists, VERSION};
@@ -101,7 +101,7 @@ impl FusedIterator for ConfigurationDiagnosticsIter<'_> {}
 impl LoadedConfiguration {
     fn try_from_payload(
         value: Option<ConfigurationPayload>,
-        fs: &DynRef<'_, dyn FileSystem>,
+        fs: &dyn FileSystem,
     ) -> Result<Self, WorkspaceError> {
         let Some(value) = value else {
             return Ok(LoadedConfiguration::default());
@@ -142,7 +142,7 @@ impl LoadedConfiguration {
 
 /// Load the partial configuration for this session of the CLI.
 pub fn load_configuration(
-    fs: &DynRef<'_, dyn FileSystem>,
+    fs: &dyn FileSystem,
     config_path: ConfigurationPathHint,
 ) -> Result<LoadedConfiguration, WorkspaceError> {
     let config = load_config(fs, config_path)?;
@@ -168,10 +168,7 @@ type LoadConfig = Result<Option<ConfigurationPayload>, WorkspaceError>;
 /// - Otherwise, the function will try to traverse upwards the file system until it finds a `biome.json` or `biome.jsonc`
 ///     file, or there aren't directories anymore. In this case, the function will not error but return an `Ok(None)`, which
 ///     means Biome will use the default configuration.
-fn load_config(
-    file_system: &DynRef<'_, dyn FileSystem>,
-    base_path: ConfigurationPathHint,
-) -> LoadConfig {
+fn load_config(file_system: &dyn FileSystem, base_path: ConfigurationPathHint) -> LoadConfig {
     // This path is used for configuration resolution from external packages.
     let external_resolution_base_path = match base_path {
         // Path hint from LSP is always the workspace root
@@ -245,7 +242,7 @@ fn load_config(
 }
 
 pub fn load_editorconfig(
-    file_system: &DynRef<'_, dyn FileSystem>,
+    file_system: &dyn FileSystem,
     workspace_root: PathBuf,
 ) -> Result<(Option<PartialConfiguration>, Vec<EditorConfigDiagnostic>), WorkspaceError> {
     // How .editorconfig is supposed to be resolved: https://editorconfig.org/#file-location
@@ -295,7 +292,7 @@ pub fn load_editorconfig(
 /// - the configuration file already exists
 /// - the program doesn't have the write rights
 pub fn create_config(
-    fs: &mut DynRef<dyn FileSystem>,
+    fs: &dyn FileSystem,
     mut configuration: PartialConfiguration,
     emit_jsonc: bool,
 ) -> Result<(), WorkspaceError> {
@@ -368,7 +365,7 @@ pub fn to_analyzer_rules(settings: &Settings, path: &Path) -> AnalyzerRules {
 pub trait PartialConfigurationExt {
     fn apply_extends(
         &mut self,
-        fs: &DynRef<'_, dyn FileSystem>,
+        fs: &dyn FileSystem,
         file_path: &Path,
         external_resolution_base_path: &Path,
         diagnostics: &mut Vec<Error>,
@@ -376,7 +373,7 @@ pub trait PartialConfigurationExt {
 
     fn deserialize_extends(
         &mut self,
-        fs: &DynRef<'_, dyn FileSystem>,
+        fs: &dyn FileSystem,
         relative_resolution_base_path: &Path,
         external_resolution_base_path: &Path,
     ) -> Result<Vec<Deserialized<PartialConfiguration>>, WorkspaceError>;
@@ -385,7 +382,7 @@ pub trait PartialConfigurationExt {
 
     fn retrieve_gitignore_matches(
         &self,
-        file_system: &DynRef<'_, dyn FileSystem>,
+        file_system: &dyn FileSystem,
         vcs_base_path: Option<&Path>,
     ) -> Result<(Option<PathBuf>, Vec<String>), WorkspaceError>;
 }
@@ -399,7 +396,7 @@ impl PartialConfigurationExt for PartialConfiguration {
     /// If a configuration can't be resolved from the file system, the operation will fail.
     fn apply_extends(
         &mut self,
-        fs: &DynRef<'_, dyn FileSystem>,
+        fs: &dyn FileSystem,
         file_path: &Path,
         external_resolution_base_path: &Path,
         diagnostics: &mut Vec<Error>,
@@ -441,7 +438,7 @@ impl PartialConfigurationExt for PartialConfiguration {
     /// It attempts to deserialize all the configuration files that were specified in the `extends` property
     fn deserialize_extends(
         &mut self,
-        fs: &DynRef<'_, dyn FileSystem>,
+        fs: &dyn FileSystem,
         relative_resolution_base_path: &Path,
         external_resolution_base_path: &Path,
     ) -> Result<Vec<Deserialized<PartialConfiguration>>, WorkspaceError> {
@@ -529,7 +526,7 @@ impl PartialConfigurationExt for PartialConfiguration {
     /// A tuple with VCS root folder and the contents of the `.gitignore` file
     fn retrieve_gitignore_matches(
         &self,
-        file_system: &DynRef<'_, dyn FileSystem>,
+        file_system: &dyn FileSystem,
         vcs_base_path: Option<&Path>,
     ) -> Result<(Option<PathBuf>, Vec<String>), WorkspaceError> {
         let Some(vcs) = &self.vcs else {

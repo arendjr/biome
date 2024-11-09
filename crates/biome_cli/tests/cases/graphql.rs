@@ -23,14 +23,14 @@ const MISSING_REASON: &str = r#"query {
 
 #[test]
 fn format_graphql_files() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.graphql");
     fs.insert(file_path.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("format"), file_path.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -50,14 +50,14 @@ fn format_graphql_files() {
 
 #[test]
 fn format_and_write_graphql_files() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.graphql");
     fs.insert(file_path.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -84,14 +84,14 @@ fn format_and_write_graphql_files() {
 
 #[test]
 fn lint_single_rule() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.graphql");
     fs.insert(file_path.into(), MISSING_REASON.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

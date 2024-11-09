@@ -7,11 +7,11 @@ use bpaf::Args;
 
 #[test]
 fn lsp_proxy_help() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("lsp-proxy"), "--help"].as_slice()),
     );

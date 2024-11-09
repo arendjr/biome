@@ -63,7 +63,7 @@ use biome_configuration::PartialConfiguration;
 use biome_console::{markup, Markup, MarkupBuf};
 use biome_diagnostics::CodeSuggestion;
 use biome_formatter::Printed;
-use biome_fs::BiomePath;
+use biome_fs::{BiomePath, FileSystem};
 use biome_grit_patterns::GritTargetLanguage;
 use biome_js_syntax::{TextRange, TextSize};
 use biome_text_edit::TextEdit;
@@ -620,12 +620,6 @@ pub struct PullDiagnosticsParams {
     pub max_diagnostics: u64,
     pub only: Vec<RuleSelector>,
     pub skip: Vec<RuleSelector>,
-
-    /// Plugins to enable in the analyzer.
-    ///
-    /// Be careful that plugins must first be loaded through
-    /// [Workspace::load_plugins()].
-    pub plugins: Vec<PluginId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -826,13 +820,6 @@ impl RageEntry {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct LoadPluginsParams {
-    pub plugins: Vec<PatternId>,
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(rename_all = "camelCase")]
 pub struct ParsePatternParams {
     pub pattern: String,
     pub default_language: GritTargetLanguage,
@@ -897,35 +884,6 @@ impl From<&str> for PatternId {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct PluginId(String);
-
-impl std::fmt::Display for PluginId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<PluginId> for String {
-    fn from(value: PluginId) -> Self {
-        value.0
-    }
-}
-
-impl From<String> for PluginId {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&str> for PluginId {
-    fn from(value: &str) -> Self {
-        Self(value.to_owned())
-    }
-}
-
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
@@ -950,6 +908,9 @@ pub struct UnregisterProjectFolderParams {
 }
 
 pub trait Workspace: Send + Sync + RefUnwindSafe {
+    /// Returns the filesystem implementation to open files with.
+    fn fs(&self) -> &dyn FileSystem;
+
     /// Checks whether a certain feature is supported. There are different conditions:
     /// - Biome doesn't recognize a file, so it can't provide the feature;
     /// - the feature is disabled inside the configuration;
@@ -1045,11 +1006,6 @@ pub trait Workspace: Send + Sync + RefUnwindSafe {
     /// Returns debug information about this workspace.
     fn rage(&self, params: RageParams) -> Result<RageResult, WorkspaceError>;
 
-    /// Loads one or more plugins.
-    ///
-    /// Once loaded, the plugins are safe to be used in other methods.
-    fn load_plugins(&self, plugins: LoadPluginsParams) -> Result<(), WorkspaceError>;
-
     /// Parses a pattern to be used in follow-up [`Self::search_pattern`] requests.
     ///
     /// Clients should call [`Self::drop_pattern()`] when they no need longer need it.
@@ -1075,21 +1031,24 @@ pub trait Workspace: Send + Sync + RefUnwindSafe {
 }
 
 /// Convenience function for constructing a server instance of [Workspace]
-pub fn server() -> Box<dyn Workspace> {
-    Box::new(server::WorkspaceServer::new())
+pub fn server(fs: Box<dyn FileSystem>) -> Box<dyn Workspace> {
+    Box::new(server::WorkspaceServer::new(fs))
 }
 
 /// Convenience function for constructing a server instance of [Workspace]
-pub fn server_sync() -> Arc<dyn Workspace> {
-    Arc::new(server::WorkspaceServer::new())
+pub fn server_sync(fs: Box<dyn FileSystem>) -> Arc<dyn Workspace> {
+    Arc::new(server::WorkspaceServer::new(fs))
 }
 
 /// Convenience function for constructing a client instance of [Workspace]
-pub fn client<T>(transport: T) -> Result<Box<dyn Workspace>, WorkspaceError>
+pub fn client<T>(
+    transport: T,
+    fs: Box<dyn FileSystem>,
+) -> Result<Box<dyn Workspace>, WorkspaceError>
 where
     T: WorkspaceTransport + RefUnwindSafe + Send + Sync + 'static,
 {
-    Ok(Box::new(client::WorkspaceClient::new(transport)?))
+    Ok(Box::new(client::WorkspaceClient::new(transport, fs)?))
 }
 
 /// [RAII](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization)
@@ -1141,7 +1100,6 @@ impl<'app, W: Workspace + ?Sized> FileGuard<'app, W> {
         max_diagnostics: u32,
         only: Vec<RuleSelector>,
         skip: Vec<RuleSelector>,
-        plugins: Vec<PluginId>,
     ) -> Result<PullDiagnosticsResult, WorkspaceError> {
         self.workspace.pull_diagnostics(PullDiagnosticsParams {
             path: self.path.clone(),
@@ -1149,7 +1107,6 @@ impl<'app, W: Workspace + ?Sized> FileGuard<'app, W> {
             max_diagnostics: max_diagnostics.into(),
             only,
             skip,
-            plugins,
         })
     }
 

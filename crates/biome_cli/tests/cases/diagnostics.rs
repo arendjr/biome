@@ -11,7 +11,7 @@ const TEST_CONTENTS: &str = "debugger;";
 #[test]
 fn logs_the_appropriate_messages_according_to_set_diagnostics_level() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -36,7 +36,7 @@ fn logs_the_appropriate_messages_according_to_set_diagnostics_level() {
     fs.insert(test.into(), TEST_CONTENTS.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -72,7 +72,7 @@ fn logs_the_appropriate_messages_according_to_set_diagnostics_level() {
 
 #[test]
 fn max_diagnostics_no_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     for i in 0..10 {
@@ -83,7 +83,7 @@ fn max_diagnostics_no_verbose() {
     fs.insert(file_path, UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), ("--max-diagnostics"), ("10"), ("src")].as_slice()),
     );
@@ -106,7 +106,7 @@ fn max_diagnostics_no_verbose() {
 
 #[test]
 fn max_diagnostics_verbose() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     for i in 0..8 {
@@ -117,7 +117,7 @@ fn max_diagnostics_verbose() {
     fs.insert(file_path, UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), ("--max-diagnostics=10"), "--verbose", ("src")].as_slice()),
     );
@@ -140,7 +140,7 @@ fn max_diagnostics_verbose() {
 
 #[test]
 fn diagnostic_level() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -169,7 +169,7 @@ import { FC, memo, useCallback } from "react";
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("check"), ("--diagnostic-level=error"), ("src")].as_slice()),
     );
@@ -197,7 +197,7 @@ import { FC, memo, useCallback } from "react";
 
 #[test]
 fn max_diagnostics_are_lifted() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     for i in 0..u8::MAX {
@@ -212,7 +212,7 @@ fn max_diagnostics_are_lifted() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

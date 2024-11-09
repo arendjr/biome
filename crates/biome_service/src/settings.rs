@@ -5,6 +5,7 @@ use biome_configuration::analyzer::assists::AssistsConfiguration;
 use biome_configuration::diagnostics::InvalidIgnorePattern;
 use biome_configuration::javascript::JsxRuntime;
 use biome_configuration::organize_imports::OrganizeImports;
+use biome_configuration::plugins::PluginConfiguration;
 use biome_configuration::{
     push_to_analyzer_rules, BiomeDiagnostic, FilesConfiguration, FormatterConfiguration,
     JavascriptConfiguration, LinterConfiguration, OverrideAssistsConfiguration,
@@ -200,6 +201,8 @@ pub struct Settings {
     pub assists: AssistsSettings,
     /// overrides
     pub override_settings: OverrideSettings,
+    /// Plugins
+    pub plugins: PluginSettings,
 }
 
 impl Settings {
@@ -1813,4 +1816,9 @@ impl TryFrom<OverrideAssistsConfiguration> for AssistsSettings {
             included_files: Matcher::empty(),
         })
     }
+}
+
+#[derive(Debug, Default)]
+pub struct PluginSettings {
+    pub plugins: Vec<PluginConfiguration>,
 }

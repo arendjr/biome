@@ -28,7 +28,7 @@ let f;
 
 #[test]
 fn reports_diagnostics_junit_check_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -38,7 +38,7 @@ fn reports_diagnostics_junit_check_command() {
     fs.insert(file_path2.into(), MAIN_2.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -64,7 +64,7 @@ fn reports_diagnostics_junit_check_command() {
 
 #[test]
 fn reports_diagnostics_junit_ci_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -74,7 +74,7 @@ fn reports_diagnostics_junit_ci_command() {
     fs.insert(file_path2.into(), MAIN_2.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -100,7 +100,7 @@ fn reports_diagnostics_junit_ci_command() {
 
 #[test]
 fn reports_diagnostics_junit_lint_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -110,7 +110,7 @@ fn reports_diagnostics_junit_lint_command() {
     fs.insert(file_path2.into(), MAIN_2.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -136,7 +136,7 @@ fn reports_diagnostics_junit_lint_command() {
 
 #[test]
 fn reports_diagnostics_junit_format_command() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path1 = Path::new("main.ts");
@@ -146,7 +146,7 @@ fn reports_diagnostics_junit_format_command() {
     fs.insert(file_path2.into(), MAIN_2.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

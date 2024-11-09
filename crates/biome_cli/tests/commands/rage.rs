@@ -11,11 +11,11 @@ use std::{env, fs};
 
 #[test]
 fn rage_help() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage"), "--help"].as_slice()),
     );
@@ -33,11 +33,11 @@ fn rage_help() {
 
 #[test]
 fn ok() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = run_rage(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage")].as_slice()),
     );
@@ -55,7 +55,7 @@ fn ok() {
 
 #[test]
 fn with_configuration() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
     fs.insert(
         Path::new("biome.json").to_path_buf(),
@@ -67,7 +67,7 @@ fn with_configuration() {
     );
 
     let result = run_rage(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage")].as_slice()),
     );
@@ -85,7 +85,7 @@ fn with_configuration() {
 
 #[test]
 fn with_jsonc_configuration() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
     fs.insert(
         Path::new("biome.jsonc").to_path_buf(),
@@ -98,7 +98,7 @@ fn with_jsonc_configuration() {
     );
 
     let result = run_rage(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage")].as_slice()),
     );
@@ -116,7 +116,7 @@ fn with_jsonc_configuration() {
 
 #[test]
 fn with_malformed_configuration() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
     fs.insert(
         Path::new("biome.json").to_path_buf(),
@@ -128,7 +128,7 @@ fn with_malformed_configuration() {
     );
 
     let result = run_rage(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage")].as_slice()),
     );
@@ -146,7 +146,7 @@ fn with_malformed_configuration() {
 
 #[test]
 fn with_server_logs() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let result = {
@@ -195,7 +195,7 @@ Not most recent log file
         .expect("Failed to write configuration file");
 
         run_cli(
-            DynRef::Borrowed(&mut fs),
+            &fs,
             &mut console,
             Args::from([("rage"), "--daemon-logs"].as_slice()),
         )
@@ -214,7 +214,7 @@ Not most recent log file
 
 #[test]
 fn with_formatter_configuration() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
     fs.insert(
         Path::new("biome.json").to_path_buf(),
@@ -263,7 +263,7 @@ fn with_formatter_configuration() {
     );
 
     let result = run_rage(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage"), "--formatter"].as_slice()),
     );
@@ -281,7 +281,7 @@ fn with_formatter_configuration() {
 
 #[test]
 fn with_linter_configuration() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
     fs.insert(
         Path::new("biome.json").to_path_buf(),
@@ -311,7 +311,7 @@ fn with_linter_configuration() {
     );
 
     let result = run_rage(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("rage"), "--linter"].as_slice()),
     );

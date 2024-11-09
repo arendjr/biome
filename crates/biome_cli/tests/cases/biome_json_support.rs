@@ -3,7 +3,6 @@ use crate::snap_test::{assert_cli_snapshot, assert_file_contents, SnapshotPayloa
 use crate::{run_cli, UNFORMATTED};
 use biome_console::BufferConsole;
 use biome_fs::{FileSystemExt, MemoryFileSystem};
-use biome_service::DynRef;
 use bpaf::Args;
 use std::path::{Path, PathBuf};
 
@@ -21,7 +20,7 @@ const CUSTOM_CONFIGURATION_AFTER: &str = "function f() {
 
 #[test]
 fn formatter_biome_json() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -31,7 +30,7 @@ fn formatter_biome_json() {
     fs.insert(file_path.into(), CUSTOM_CONFIGURATION_BEFORE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -63,7 +62,7 @@ fn formatter_biome_json() {
 
 #[test]
 fn linter_biome_json() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("fix.js");
@@ -86,7 +85,7 @@ fn linter_biome_json() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -119,7 +118,7 @@ fn linter_biome_json() {
 
 #[test]
 fn check_biome_json() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("fix.js");
@@ -142,7 +141,7 @@ fn check_biome_json() {
     );
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -175,7 +174,7 @@ fn check_biome_json() {
 
 #[test]
 fn ci_biome_json() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     fs.insert(
@@ -194,7 +193,7 @@ fn ci_biome_json() {
     fs.insert(input_file.into(), "  statement(  )  ".as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from([("ci"), input_file.as_os_str().to_str().unwrap()].as_slice()),
     );
@@ -214,7 +213,7 @@ fn ci_biome_json() {
 
 #[test]
 fn biome_json_is_not_ignored() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     fs.insert(
@@ -237,11 +236,7 @@ fn biome_json_is_not_ignored() {
 
     fs.insert(input_file.into(), "  statement(  )  ".as_bytes());
 
-    let result = run_cli(
-        DynRef::Borrowed(&mut fs),
-        &mut console,
-        Args::from([("ci"), "./"].as_slice()),
-    );
+    let result = run_cli(&fs, &mut console, Args::from([("ci"), "./"].as_slice()));
 
     assert!(result.is_ok(), "run_cli returned {result:?}");
 
@@ -256,7 +251,7 @@ fn biome_json_is_not_ignored() {
 
 #[test]
 fn always_disable_trailing_commas_biome_json() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("biome.json");
@@ -275,7 +270,7 @@ fn always_disable_trailing_commas_biome_json() {
     fs.insert(file_path.into(), config);
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(["check", "--write", "."].as_slice()),
     );

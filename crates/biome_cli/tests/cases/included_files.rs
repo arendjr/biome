@@ -20,7 +20,7 @@ import * as something from "../something";"#;
 #[test]
 fn does_handle_only_included_files() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -38,7 +38,7 @@ fn does_handle_only_included_files() {
     fs.insert(test2.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -69,7 +69,7 @@ fn does_handle_only_included_files() {
 #[test]
 fn does_not_handle_included_files_if_overridden_by_ignore() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -87,7 +87,7 @@ fn does_not_handle_included_files_if_overridden_by_ignore() {
     fs.insert(test2.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -118,7 +118,7 @@ fn does_not_handle_included_files_if_overridden_by_ignore() {
 #[test]
 fn does_not_handle_included_files_if_overridden_by_ignore_formatter() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -136,7 +136,7 @@ fn does_not_handle_included_files_if_overridden_by_ignore_formatter() {
     fs.insert(test2.into(), UNFORMATTED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -167,7 +167,7 @@ fn does_not_handle_included_files_if_overridden_by_ignore_formatter() {
 #[test]
 fn does_not_handle_included_files_if_overridden_by_ignore_linter() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -185,7 +185,7 @@ fn does_not_handle_included_files_if_overridden_by_ignore_linter() {
     fs.insert(test2.into(), FIX_BEFORE.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -216,7 +216,7 @@ fn does_not_handle_included_files_if_overridden_by_ignore_linter() {
 #[test]
 fn does_not_handle_included_files_if_overridden_by_organize_imports() {
     let mut console = BufferConsole::default();
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let file_path = Path::new("biome.json");
     fs.insert(
         file_path.into(),
@@ -236,7 +236,7 @@ fn does_not_handle_included_files_if_overridden_by_organize_imports() {
     fs.insert(test2.into(), UNORGANIZED.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [

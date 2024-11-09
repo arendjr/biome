@@ -21,14 +21,14 @@ const JS_FILE_CONTENT: &str = r#"const a = 'foo';"#;
 
 #[test]
 fn search_css_pattern() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.css");
     fs.insert(file_path.into(), CSS_FILE_CONTENT.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -54,14 +54,14 @@ fn search_css_pattern() {
 
 #[test]
 fn search_css_pattern_shorthand() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.css");
     fs.insert(file_path.into(), CSS_FILE_CONTENT.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
@@ -87,14 +87,14 @@ fn search_css_pattern_shorthand() {
 
 #[test]
 fn search_js_pattern() {
-    let mut fs = MemoryFileSystem::default();
+    let fs = MemoryFileSystem::default();
     let mut console = BufferConsole::default();
 
     let file_path = Path::new("file.js");
     fs.insert(file_path.into(), JS_FILE_CONTENT.as_bytes());
 
     let result = run_cli(
-        DynRef::Borrowed(&mut fs),
+        &fs,
         &mut console,
         Args::from(
             [
