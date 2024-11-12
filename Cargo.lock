@@ -746,6 +746,7 @@ dependencies = [
  "biome_deserialize_macros",
  "biome_diagnostics",
  "biome_fs",
+ "biome_js_dependency_graph",
  "biome_js_factory",
  "biome_js_parser",
  "biome_js_semantic",
@@ -769,6 +770,13 @@ dependencies = [
  "serde",
  "smallvec",
  "tests_macros",
+]
+
+[[package]]
+name = "biome_js_dependency_graph"
+version = "0.0.0"
+dependencies = [
+ "biome_js_syntax",
 ]
 
 [[package]]

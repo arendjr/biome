@@ -12,6 +12,7 @@ pub mod no_exported_imports;
 pub mod no_head_element;
 pub mod no_head_import_in_document;
 pub mod no_img_element;
+pub mod no_import_cycles;
 pub mod no_irregular_whitespace;
 pub mod no_nested_ternary;
 pub mod no_octal_escape;
@@ -55,6 +56,7 @@ declare_lint_group! {
             self :: no_head_element :: NoHeadElement ,
             self :: no_head_import_in_document :: NoHeadImportInDocument ,
             self :: no_img_element :: NoImgElement ,
+            self :: no_import_cycles :: NoImportCycles ,
             self :: no_irregular_whitespace :: NoIrregularWhitespace ,
             self :: no_nested_ternary :: NoNestedTernary ,
             self :: no_octal_escape :: NoOctalEscape ,

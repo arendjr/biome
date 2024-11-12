@@ -12,9 +12,11 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 
+use super::SecondPhaseFileResult;
+
 /// Lints a single file and returns a [FileResult]
 pub(crate) fn lint<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     path: &Path,
     suppress: bool,
     suppression_reason: Option<&str>,
@@ -34,7 +36,7 @@ pub(crate) fn lint<'ctx>(
 }
 
 pub(crate) fn lint_with_guard<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     workspace_file: &mut WorkspaceFile,
     suppress: bool,
     suppression_reason: Option<&str>,
@@ -125,7 +127,7 @@ pub(crate) fn lint_with_guard<'ctx>(
         };
 
         ctx.push_message(Message::Diagnostics {
-            name: workspace_file.path.display().to_string(),
+            file_name: workspace_file.path.display().to_string(),
             content: input,
             diagnostics: pull_diagnostics_result
                 .diagnostics
@@ -148,4 +150,119 @@ pub(crate) fn lint_with_guard<'ctx>(
     } else {
         Ok(FileStatus::Unchanged)
     }
+}
+
+/// Lints a single file with FS services available.
+pub(crate) fn lint_with_fs<'ctx>(
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
+    workspace_file: &mut WorkspaceFile,
+    suppress: bool,
+    suppression_reason: Option<&str>,
+) -> SecondPhaseFileResult {
+    let _span =
+        tracing::info_span!("Lint with FS ", path =? workspace_file.path.display()).entered();
+
+    let mut input = workspace_file.input()?;
+    let mut changed = false;
+    let (only, skip) =
+        if let TraversalMode::Lint { only, skip, .. } = ctx.execution.traversal_mode() {
+            (only.clone(), skip.clone())
+        } else {
+            (Vec::new(), Vec::new())
+        };
+    if let Some(fix_mode) = ctx.execution.as_fix_file_mode() {
+        let suppression_explanation = if suppress && suppression_reason.is_none() {
+            "ignored using `--suppress`"
+        } else {
+            suppression_reason.unwrap_or("<explanation>")
+        };
+
+        let fix_result = workspace_file
+            .guard()
+            .fix_file(
+                *fix_mode,
+                false,
+                RuleCategoriesBuilder::default()
+                    .with_syntax()
+                    .with_lint()
+                    .build(),
+                only.clone(),
+                skip.clone(),
+                Some(suppression_explanation.to_string()),
+            )
+            .with_file_path_and_code(
+                workspace_file.path.display().to_string(),
+                category!("lint"),
+            )?;
+
+        ctx.push_message(Message::SkippedFixes {
+            skipped_suggested_fixes: fix_result.skipped_suggested_fixes,
+        });
+
+        let mut output = fix_result.code;
+
+        match workspace_file.as_extension().map(OsStr::as_encoded_bytes) {
+            Some(b"astro") => {
+                output = AstroFileHandler::output(input.as_str(), output.as_str());
+            }
+            Some(b"vue") => {
+                output = VueFileHandler::output(input.as_str(), output.as_str());
+            }
+            Some(b"svelte") => {
+                output = SvelteFileHandler::output(input.as_str(), output.as_str());
+            }
+            _ => {}
+        }
+        if output != input {
+            changed = true;
+            workspace_file.update_file(output)?;
+            input = workspace_file.input()?;
+        }
+    }
+
+    let max_diagnostics = ctx.remaining_diagnostics.load(Ordering::Relaxed);
+    let pull_diagnostics_result = workspace_file
+        .guard()
+        .pull_diagnostics(
+            RuleCategoriesBuilder::default()
+                .with_syntax()
+                .with_lint()
+                .build(),
+            max_diagnostics,
+            only,
+            skip,
+        )
+        .with_file_path_and_code(workspace_file.path.display().to_string(), category!("lint"))?;
+
+    let no_diagnostics = pull_diagnostics_result.diagnostics.is_empty()
+        && pull_diagnostics_result.skipped_diagnostics == 0;
+
+    if !no_diagnostics {
+        let offset = match workspace_file.as_extension().map(OsStr::as_encoded_bytes) {
+            Some(b"vue") => VueFileHandler::start(input.as_str()),
+            Some(b"astro") => AstroFileHandler::start(input.as_str()),
+            Some(b"svelte") => SvelteFileHandler::start(input.as_str()),
+            _ => None,
+        };
+
+        ctx.push_message(Message::Diagnostics {
+            file_name: workspace_file.path.display().to_string(),
+            content: input,
+            diagnostics: pull_diagnostics_result
+                .diagnostics
+                .into_iter()
+                .map(|diagnostic| {
+                    if let Some(offset) = offset {
+                        diagnostic.with_offset(TextSize::from(offset))
+                    } else {
+                        diagnostic
+                    }
+                })
+                .map(Error::from)
+                .collect(),
+            skipped_diagnostics: pull_diagnostics_result.skipped_diagnostics as u32,
+        });
+    }
+
+    Ok(message)
 }

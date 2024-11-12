@@ -120,6 +120,7 @@ impl ExtensionHandler for HtmlFileHandler {
             },
             analyzer: AnalyzerCapabilities {
                 lint: None,
+                lint_with_fs: None,
                 code_actions: None,
                 rename: None,
                 fix_all: None,

@@ -131,6 +131,7 @@ biome_html_formatter         = { version = "0.0.0", path = "./crates/biome_html_
 biome_html_parser            = { version = "0.0.1", path = "./crates/biome_html_parser" }
 biome_html_syntax            = { version = "0.5.7", path = "./crates/biome_html_syntax" }
 biome_js_analyze             = { version = "0.5.7", path = "./crates/biome_js_analyze" }
+biome_js_dependency_graph    = { version = "0.0.0", path = "./crates/biome_js_dependency_graph" }
 biome_js_factory             = { version = "0.5.7", path = "./crates/biome_js_factory" }
 biome_js_formatter           = { version = "0.5.7", path = "./crates/biome_js_formatter" }
 biome_js_parser              = { version = "0.5.7", path = "./crates/biome_js_parser" }

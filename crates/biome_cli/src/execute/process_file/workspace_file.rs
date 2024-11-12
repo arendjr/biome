@@ -17,16 +17,14 @@ pub(crate) struct WorkspaceFile<'ctx, 'app> {
 impl<'ctx, 'app> WorkspaceFile<'ctx, 'app> {
     /// It attempts to read the file from disk, creating a [FileGuard] and
     /// saving these information internally
-    pub(crate) fn new(
-        ctx: &SharedTraversalOptions<'ctx, 'app>,
-        path: &Path,
-    ) -> Result<Self, Error> {
+    pub(crate) fn new(ctx: &SharedTraversalOptions<'ctx>, path: &Path) -> Result<Self, Error> {
         let biome_path = BiomePath::new(path);
         let open_options = OpenOptions::default()
             .read(true)
             .write(ctx.execution.requires_write_access());
         let mut file = ctx
-            .fs
+            .workspace
+            .fs()
             .open_with_options(path, open_options)
             .with_file_path(path.display().to_string())?;
 

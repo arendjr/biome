@@ -1,7 +1,7 @@
 use super::{
     search, AnalyzerCapabilities, AnalyzerVisitorBuilder, CodeActionsParams, DebugCapabilities,
-    ExtensionHandler, FormatterCapabilities, LintParams, LintResults, ParseResult,
-    ParserCapabilities, SearchCapabilities,
+    ExtensionHandler, FormatterCapabilities, LintParams, LintResults, LintWithFsParams,
+    ParseResult, ParserCapabilities, SearchCapabilities,
 };
 use crate::configuration::to_analyzer_rules;
 use crate::diagnostics::extension_error;
@@ -299,6 +299,7 @@ impl ExtensionHandler for JsFileHandler {
             },
             analyzer: AnalyzerCapabilities {
                 lint: Some(lint),
+                lint_with_fs: Some(lint_with_fs),
                 code_actions: Some(code_actions),
                 fix_all: Some(fix_all),
                 rename: Some(rename),
@@ -506,6 +507,130 @@ pub(crate) fn lint(params: LintParams) -> LintResults {
                 }
 
                 if diagnostic_count <= params.max_diagnostics {
+                    for action in signal.actions() {
+                        if !action.is_suppression() {
+                            diagnostic = diagnostic.add_code_suggestion(action.into());
+                        }
+                    }
+
+                    let error = diagnostic.with_severity(severity);
+
+                    diagnostics.push(biome_diagnostics::serde::Diagnostic::new(error));
+                }
+            }
+
+            ControlFlow::<Never>::Continue(())
+        },
+    );
+
+    diagnostics.extend(
+        analyze_diagnostics
+            .into_iter()
+            .map(biome_diagnostics::serde::Diagnostic::new)
+            .collect::<Vec<_>>(),
+    );
+    let skipped_diagnostics = diagnostic_count.saturating_sub(diagnostics.len() as u32);
+
+    LintResults {
+        diagnostics,
+        errors,
+        skipped_diagnostics,
+    }
+}
+
+pub(crate) fn lint_with_fs(params: LintWithFsParams) -> LintResults {
+    let _ =
+        debug_span!("Linting JavaScript file with FS services", path =? params.lint.path, language =? params.lint.language)
+            .entered();
+    let Some(file_source) = params
+        .lint
+        .language
+        .to_js_file_source()
+        .or(JsFileSource::try_from(params.lint.path.as_path()).ok())
+    else {
+        return LintResults {
+            errors: 0,
+            diagnostics: Vec::new(),
+            skipped_diagnostics: 0,
+        };
+    };
+    let tree = params.lint.parse.tree();
+    let analyzer_options = &params.lint.workspace.analyzer_options::<JsLanguage>(
+        params.lint.path,
+        &params.lint.language,
+        params.lint.suppression_reason,
+    );
+
+    let rules = params
+        .lint
+        .workspace
+        .settings()
+        .as_ref()
+        .and_then(|settings| settings.as_linter_rules(params.lint.path.as_path()));
+
+    let (enabled_rules, disabled_rules) =
+        AnalyzerVisitorBuilder::new(params.lint.workspace.settings())
+            .with_only(&params.lint.only)
+            .with_skip(&params.lint.skip)
+            .with_path(params.lint.path.as_path())
+            .with_enabled_rules(&params.lint.enabled_rules)
+            .finish();
+
+    let filter = AnalysisFilter {
+        categories: params.lint.categories,
+        enabled_rules: Some(enabled_rules.as_slice()),
+        disabled_rules: &disabled_rules,
+        range: None,
+    };
+
+    let ignores_suppression_comment =
+        !filter.categories.contains(RuleCategory::Lint) || !params.lint.only.is_empty();
+
+    let mut diagnostics = params.lint.parse.into_diagnostics();
+    let mut diagnostic_count = diagnostics.len() as u32;
+    let mut errors = diagnostics
+        .iter()
+        .filter(|diag| diag.severity() <= Severity::Error)
+        .count();
+
+    info!("Analyze file {}", params.lint.path.display());
+    let (_, analyze_diagnostics) = analyze(
+        &tree,
+        filter,
+        analyzer_options,
+        Vec::new(),
+        file_source,
+        params.lint.manifest,
+        |signal| {
+            if let Some(mut diagnostic) = signal.diagnostic() {
+                if ignores_suppression_comment
+                    && diagnostic.category() == Some(category!("suppressions/unused"))
+                {
+                    return ControlFlow::<Never>::Continue(());
+                }
+
+                diagnostic_count += 1;
+
+                // We do now check if the severity of the diagnostics should be changed.
+                // The configuration allows to change the severity of the diagnostics emitted by rules.
+                let severity = diagnostic
+                    .category()
+                    .filter(|category| category.name().starts_with("lint/"))
+                    .map_or_else(
+                        || diagnostic.severity(),
+                        |category| {
+                            rules
+                                .as_ref()
+                                .and_then(|rules| rules.get_severity_from_code(category))
+                                .unwrap_or(Severity::Warning)
+                        },
+                    );
+
+                if severity >= Severity::Error {
+                    errors += 1;
+                }
+
+                if diagnostic_count <= params.lint.max_diagnostics {
                     for action in signal.actions() {
                         if !action.is_suppression() {
                             diagnostic = diagnostic.add_code_suggestion(action.into());

@@ -780,7 +780,7 @@ pub trait Rule: RuleMeta + Sized {
     type Options: Default + Clone + Debug;
 
     fn phase() -> Phases {
-        <<<Self as Rule>::Query as Queryable>::Services as Phase>::phase()
+        <<Self::Query as Queryable>::Services as Phase>::phase()
     }
 
     /// This function is called once for each node matching `Query` in the tree

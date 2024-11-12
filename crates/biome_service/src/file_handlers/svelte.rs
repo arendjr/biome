@@ -18,6 +18,7 @@ use regex::{Match, Regex};
 use std::sync::LazyLock;
 use tracing::debug;
 
+use super::javascript::lint_with_fs;
 use super::{parse_lang_from_script_opening_tag, SearchCapabilities};
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -92,6 +93,7 @@ impl ExtensionHandler for SvelteFileHandler {
             },
             analyzer: AnalyzerCapabilities {
                 lint: Some(lint),
+                lint_with_fs: Some(lint_with_fs),
                 code_actions: Some(code_actions),
                 rename: None,
                 fix_all: Some(fix_all),

@@ -12,7 +12,7 @@ use biome_service::workspace::FixFileMode;
 
 /// Lints a single file and returns a [FileResult]
 pub(crate) fn assist_with_guard<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     workspace_file: &mut WorkspaceFile,
 ) -> FileResult {
     let _ = tracing::info_span!("Process assist", path =? workspace_file.path.display()).entered();

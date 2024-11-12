@@ -54,7 +54,7 @@ impl Default for OsFileSystem {
 
 impl FileSystem for OsFileSystem {
     fn open_with_options(&self, path: &Path, options: OpenOptions) -> io::Result<Box<dyn File>> {
-        tracing::debug_span!("OsFileSystem::open_with_options", path = ?path, options = ?options)
+        tracing::debug_span!("OsFileSystem::open_with_options", path =? path, options = ?options)
             .in_scope(move || -> io::Result<Box<dyn File>> {
                 let mut fs_options = fs::File::options();
                 Ok(Box::new(OsFile {

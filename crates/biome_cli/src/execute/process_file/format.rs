@@ -14,7 +14,7 @@ use std::path::Path;
 use std::sync::atomic::Ordering;
 use tracing::debug;
 
-pub(crate) fn format<'ctx>(ctx: &'ctx SharedTraversalOptions<'ctx, '_>, path: &Path) -> FileResult {
+pub(crate) fn format<'ctx>(ctx: &'ctx SharedTraversalOptions<'ctx>, path: &Path) -> FileResult {
     let mut workspace_file = WorkspaceFile::new(ctx, path)?;
     let result = workspace_file.guard().check_file_size()?;
     if result.is_too_large() {
@@ -30,7 +30,7 @@ pub(crate) fn format<'ctx>(ctx: &'ctx SharedTraversalOptions<'ctx, '_>, path: &P
 }
 
 pub(crate) fn format_with_guard<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     workspace_file: &mut WorkspaceFile,
 ) -> FileResult {
     let _ = tracing::info_span!("Format", path =? workspace_file.path.display()).entered();
@@ -71,7 +71,7 @@ pub(crate) fn format_with_guard<'ctx>(
     }
 
     ctx.push_message(Message::Diagnostics {
-        name: workspace_file.path.display().to_string(),
+        file_name: workspace_file.path.display().to_string(),
         content: input.clone(),
         diagnostics: diagnostics_result
             .diagnostics

@@ -1,4 +1,5 @@
-use super::process_file::{process_file, DiffKind, FileStatus, Message};
+use super::process_file::workspace_file::WorkspaceFile;
+use super::process_file::{process_file, process_file_with_fs, DiffKind, FileStatus, Message};
 use super::{Execution, TraversalMode};
 use crate::cli_options::CliOptions;
 use crate::execute::diagnostics::{
@@ -10,12 +11,13 @@ use crate::reporter::TraversalSummary;
 use crate::{CliDiagnostic, CliSession};
 use biome_diagnostics::DiagnosticTags;
 use biome_diagnostics::{category, DiagnosticExt, Error, Resource, Severity};
-use biome_fs::{BiomePath, FileSystem, PathInterner};
+use biome_fs::{BiomePath, PathInterner};
 use biome_fs::{TraversalContext, TraversalScope};
 use biome_service::dome::Dome;
 use biome_service::workspace::{DropPatternParams, IsPathIgnoredParams};
 use biome_service::{extension_error, workspace::SupportsFeatureParams, Workspace, WorkspaceError};
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use rustc_hash::FxHashSet;
 use std::collections::BTreeSet;
 use std::sync::atomic::AtomicU32;
@@ -82,7 +84,6 @@ pub(crate) fn traverse(
     let skipped = AtomicUsize::new(0);
 
     let workspace = &*session.app.workspace;
-    let fs = workspace.fs();
 
     let max_diagnostics = execution.get_max_diagnostics();
     let remaining_diagnostics = AtomicU32::new(max_diagnostics);
@@ -98,25 +99,23 @@ pub(crate) fn traverse(
             .spawn_scoped(s, || printer.run(receiver, recv_files))
             .expect("failed to spawn console thread");
 
+        let traversal_options = TraversalOptions {
+            workspace,
+            execution,
+            interner,
+            matches: &matches,
+            changed: &changed,
+            unchanged: &unchanged,
+            skipped: &skipped,
+            messages: sender,
+            remaining_diagnostics: &remaining_diagnostics,
+            evaluated_paths: RwLock::default(),
+        };
+
         // The traversal context is scoped to ensure all the channels it
         // contains are properly closed once the traversal finishes
-        let (elapsed, evaluated_paths) = traverse_inputs(
-            fs,
-            inputs,
-            &TraversalOptions {
-                fs,
-                workspace,
-                execution,
-                interner,
-                matches: &matches,
-                changed: &changed,
-                unchanged: &unchanged,
-                skipped: &skipped,
-                messages: sender,
-                remaining_diagnostics: &remaining_diagnostics,
-                evaluated_paths: RwLock::default(),
-            },
-        );
+        let (elapsed, evaluated_paths) = traverse_inputs(inputs, &traversal_options);
+
         // wait for the main thread to finish
         let diagnostics = handler.join().unwrap();
 
@@ -171,10 +170,11 @@ fn init_thread_pool() {
 /// Initiate the filesystem traversal tasks with the provided input paths and
 /// run it to completion, returning the duration of the process and the evaluated paths
 fn traverse_inputs(
-    fs: &dyn FileSystem,
     inputs: Vec<OsString>,
     ctx: &TraversalOptions,
 ) -> (Duration, BTreeSet<BiomePath>) {
+    let fs = ctx.workspace.fs();
+
     let start = Instant::now();
     fs.traversal(Box::new(move |scope: &dyn TraversalScope| {
         for input in inputs {
@@ -183,7 +183,7 @@ fn traverse_inputs(
     }));
 
     let paths = ctx.evaluated_paths();
-    let dome = Dome::new(paths);
+    let dome = Dome::new(paths.clone());
     let mut iter = dome.iter();
     fs.traversal(Box::new(|scope: &dyn TraversalScope| {
         while let Some(path) = iter.next_config() {
@@ -199,7 +199,28 @@ fn traverse_inputs(
         }
     }));
 
-    (start.elapsed(), ctx.evaluated_paths())
+    if matches!(ctx.execution.traversal_mode(), TraversalMode::Lint { .. }) {
+        // Initialize FS services and run the second linter phase:
+        match ctx.workspace.init_fs_services() {
+            Ok(()) => {
+                // We do not use fs traversal anymore for going over the files,
+                // since all the files we want to check are traversed already.
+                // Instead, we use `rayon` to iterate quickly over the Dome
+                // paths
+                Dome::new(ctx.evaluated_paths())
+                    .iter()
+                    .par_bridge()
+                    .for_each(|path| {
+                        ctx.handle_path_with_fs(path);
+                    });
+            }
+            Err(error) => {
+                let _ = ctx.messages.send(Message::Error(error.into()));
+            }
+        }
+    }
+
+    (start.elapsed(), paths)
 }
 
 // struct DiagnosticsReporter<'ctx> {}
@@ -343,9 +364,11 @@ impl<'ctx> DiagnosticsPrinter<'ctx> {
                             None => loop {
                                 match interner.recv() {
                                     Ok(path) => {
-                                        paths.insert(path.display().to_string());
-                                        if path.display().to_string() == *file_path {
-                                            break paths.get(&path.display().to_string());
+                                        let path = path.display().to_string();
+                                        let is_match = path == *file_path;
+                                        paths.insert(path);
+                                        if is_match {
+                                            break paths.get(*file_path);
                                         }
                                     }
                                     // In case the channel disconnected without sending
@@ -357,7 +380,7 @@ impl<'ctx> DiagnosticsPrinter<'ctx> {
                         };
 
                         if let Some(path) = file_name {
-                            err = err.with_file_path(path.as_str());
+                            err = err.with_file_path(path);
                         }
                     }
 
@@ -369,7 +392,7 @@ impl<'ctx> DiagnosticsPrinter<'ctx> {
                 }
 
                 Message::Diagnostics {
-                    name,
+                    file_name: name,
                     content,
                     diagnostics,
                     skipped_diagnostics,
@@ -538,34 +561,40 @@ impl<'ctx> DiagnosticsPrinter<'ctx> {
 }
 
 /// Context object shared between directory traversal tasks
-pub(crate) struct TraversalOptions<'ctx, 'app> {
-    /// Shared instance of [FileSystem]
-    pub(crate) fs: &'app dyn FileSystem,
-    /// Instance of [Workspace] used by this instance of the CLI
+pub(crate) struct TraversalOptions<'ctx> {
+    /// Instance of [Workspace] used by this instance of the CLI.
     pub(crate) workspace: &'ctx dyn Workspace,
-    /// Determines how the files should be processed
+
+    /// Determines how the files should be processed.
     pub(crate) execution: &'ctx Execution,
-    /// File paths interner cache used by the filesystem traversal
+
+    /// File paths interner cache used by the filesystem traversal.
     interner: PathInterner,
-    /// Shared atomic counter storing the number of changed files
+
+    /// Shared atomic counter storing the number of changed files.
     changed: &'ctx AtomicUsize,
-    /// Shared atomic counter storing the number of unchanged files
+
+    /// Shared atomic counter storing the number of unchanged files.
     unchanged: &'ctx AtomicUsize,
-    /// Shared atomic counter storing the number of unchanged files
+
+    /// Shared atomic counter storing the number of unchanged files.
     matches: &'ctx AtomicUsize,
-    /// Shared atomic counter storing the number of skipped files
+
+    /// Shared atomic counter storing the number of skipped files.
     skipped: &'ctx AtomicUsize,
-    /// Channel sending messages to the display thread
+
+    /// Channel sending messages to the display thread.
     pub(crate) messages: Sender<Message>,
+
     /// The approximate number of diagnostics the console will print before
-    /// folding the rest into the "skipped diagnostics" counter
+    /// folding the rest into the "skipped diagnostics" counter.
     pub(crate) remaining_diagnostics: &'ctx AtomicU32,
 
-    /// List of paths that should be processed
+    /// List of paths that should be processed.
     pub(crate) evaluated_paths: RwLock<BTreeSet<BiomePath>>,
 }
 
-impl<'ctx, 'app> TraversalOptions<'ctx, 'app> {
+impl<'ctx> TraversalOptions<'ctx> {
     pub(crate) fn increment_changed(&self, path: &BiomePath) {
         self.changed.fetch_add(1, Ordering::Relaxed);
         self.evaluated_paths
@@ -573,6 +602,7 @@ impl<'ctx, 'app> TraversalOptions<'ctx, 'app> {
             .unwrap()
             .replace(path.to_written());
     }
+
     pub(crate) fn increment_unchanged(&self) {
         self.unchanged.fetch_add(1, Ordering::Relaxed);
     }
@@ -581,7 +611,7 @@ impl<'ctx, 'app> TraversalOptions<'ctx, 'app> {
         self.matches.fetch_add(num_matches, Ordering::Relaxed);
     }
 
-    /// Send a message to the display thread
+    /// Sends a message to the display thread.
     pub(crate) fn push_message(&self, msg: impl Into<Message>) {
         self.messages.send(msg.into()).ok();
     }
@@ -599,9 +629,21 @@ impl<'ctx, 'app> TraversalOptions<'ctx, 'app> {
             WorkspaceError::protected_file(biome_path.display().to_string()).into(),
         )
     }
+
+    /// Drops a path from the set of evaluated paths.
+    ///
+    /// This prevents the evaluated path from being evaluated again in the
+    /// second phase of traversal, where the filesystem services are in use.
+    fn drop_path(&self, path: &BiomePath) {
+        self.evaluated_paths.write().unwrap().remove(path);
+    }
+
+    fn handle_path_with_fs(&self, path: &BiomePath) {
+        handle_file_with_fs(self, path)
+    }
 }
 
-impl<'ctx, 'app> TraversalContext for TraversalOptions<'ctx, 'app> {
+impl<'ctx> TraversalContext for TraversalOptions<'ctx> {
     fn interner(&self) -> &PathInterner {
         &self.interner
     }
@@ -615,8 +657,9 @@ impl<'ctx, 'app> TraversalContext for TraversalOptions<'ctx, 'app> {
     }
 
     fn can_handle(&self, biome_path: &BiomePath) -> bool {
+        let fs = self.workspace.fs();
         let path = biome_path.as_path();
-        if self.fs.path_is_dir(path) || self.fs.path_is_symlink(path) {
+        if fs.path_is_dir(path) || fs.path_is_symlink(path) {
             // handle:
             // - directories
             // - symlinks
@@ -637,7 +680,7 @@ impl<'ctx, 'app> TraversalContext for TraversalOptions<'ctx, 'app> {
         }
 
         // bail on fifo and socket files
-        if !self.fs.path_is_file(path) {
+        if !fs.path_is_file(path) {
             return false;
         }
 
@@ -714,11 +757,15 @@ fn handle_file(ctx: &TraversalOptions, path: &BiomePath) {
         }
         Ok(Ok(FileStatus::Protected(file_path))) => {
             ctx.increment_unchanged();
+            ctx.drop_path(path);
             ctx.push_diagnostic(WorkspaceError::protected_file(file_path).into());
         }
-        Ok(Ok(FileStatus::Ignored)) => {}
+        Ok(Ok(FileStatus::Ignored)) => {
+            ctx.drop_path(path);
+        }
         Ok(Err(err)) => {
             ctx.increment_unchanged();
+            ctx.drop_path(path);
             ctx.skipped.fetch_add(1, Ordering::Relaxed);
             ctx.push_message(err);
         }
@@ -733,6 +780,32 @@ fn handle_file(ctx: &TraversalOptions, path: &BiomePath) {
 
             ctx.push_message(
                 PanicDiagnostic { message }.with_file_path(path.display().to_string()),
+            );
+        }
+    }
+}
+
+fn handle_file_with_fs(ctx: &TraversalOptions, file: WorkspaceFile) {
+    match catch_unwind(move || process_file_with_fs(ctx, file)) {
+        Ok(Ok(message)) => {
+            if let Some(message) = message {
+                ctx.push_message(message);
+            }
+        }
+        Ok(Err(error)) => {
+            ctx.push_message(error);
+        }
+        Err(err) => {
+            let message = match err.downcast::<String>() {
+                Ok(msg) => format!("processing panicked: {msg}"),
+                Err(err) => match err.downcast::<&'static str>() {
+                    Ok(msg) => format!("processing panicked: {msg}"),
+                    Err(_) => String::from("processing panicked"),
+                },
+            };
+
+            ctx.push_message(
+                PanicDiagnostic { message }.with_file_path(file.path.display().to_string()),
             );
         }
     }

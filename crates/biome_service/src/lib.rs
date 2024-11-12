@@ -13,6 +13,7 @@ pub mod workspace;
 pub mod configuration;
 pub mod diagnostics;
 pub mod dome;
+pub mod fs_data;
 #[cfg(feature = "schema")]
 pub mod workspace_types;
 

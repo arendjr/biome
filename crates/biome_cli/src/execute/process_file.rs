@@ -14,10 +14,11 @@ use biome_fs::BiomePath;
 use biome_service::workspace::{FeatureKind, SupportKind, SupportsFeatureParams};
 use check::check_file;
 use format::format;
-use lint::lint;
+use lint::{lint, lint_with_fs};
 use search::search;
 use std::marker::PhantomData;
 use std::ops::Deref;
+use workspace_file::WorkspaceFile;
 
 #[derive(Debug)]
 pub(crate) enum FileStatus {
@@ -51,7 +52,7 @@ pub(crate) enum Message {
     Failure,
     Error(Error),
     Diagnostics {
-        name: String,
+        file_name: String,
         content: String,
         diagnostics: Vec<Error>,
         skipped_diagnostics: u32,
@@ -98,15 +99,23 @@ where
 ///   `skipped` counter
 pub(crate) type FileResult = Result<FileStatus, Message>;
 
+/// Same as
+pub(crate) type FileResultWithWorkspaceFile = Result<(FileStatus, Option<WorkspaceFile>), Message>;
+
+/// The return type for [process_file_with_fs].
+///
+/// On success, a message is optional. On error, it is mandatory.
+pub(crate) type SecondPhaseFileResult = Result<Option<Message>, Message>;
+
 /// Data structure that allows to pass [TraversalOptions] to multiple consumers, bypassing the
 /// compiler constraints set by the lifetimes of the [TraversalOptions]
-pub(crate) struct SharedTraversalOptions<'ctx, 'app> {
-    inner: &'app TraversalOptions<'ctx, 'app>,
-    _p: PhantomData<&'app ()>,
+pub(crate) struct SharedTraversalOptions<'ctx> {
+    inner: &'ctx TraversalOptions<'ctx>,
+    _p: PhantomData<&'ctx ()>,
 }
 
-impl<'ctx, 'app> SharedTraversalOptions<'ctx, 'app> {
-    fn new(t: &'app TraversalOptions<'ctx, 'app>) -> Self {
+impl<'ctx> SharedTraversalOptions<'ctx> {
+    fn new(t: &'ctx TraversalOptions<'ctx>) -> Self {
         Self {
             _p: PhantomData,
             inner: t,
@@ -114,8 +123,8 @@ impl<'ctx, 'app> SharedTraversalOptions<'ctx, 'app> {
     }
 }
 
-impl<'ctx, 'app> Deref for SharedTraversalOptions<'ctx, 'app> {
-    type Target = TraversalOptions<'ctx, 'app>;
+impl<'ctx> Deref for SharedTraversalOptions<'ctx> {
+    type Target = TraversalOptions<'ctx>;
 
     fn deref(&self) -> &Self::Target {
         self.inner
@@ -128,7 +137,7 @@ impl<'ctx, 'app> Deref for SharedTraversalOptions<'ctx, 'app> {
 /// content of the file and emit a diff or write the new content to the disk if
 /// write mode is enabled
 pub(crate) fn process_file(ctx: &TraversalOptions, biome_path: &BiomePath) -> FileResult {
-    let _ = tracing::trace_span!("process_file", path = ?biome_path).entered();
+    let _span = tracing::trace_span!("process_file", path =? biome_path).entered();
     let file_features = ctx
         .workspace
         .file_features(SupportsFeatureParams {
@@ -236,5 +245,37 @@ pub(crate) fn process_file(ctx: &TraversalOptions, biome_path: &BiomePath) -> Fi
             // the unsupported case should be handled already at this point
             search(shared_context, biome_path, pattern)
         }
+    }
+}
+
+/// This function performs the processing for files when filesystem services are
+/// available.
+///
+/// This is currently only implementing for linting, where fs-enabled rules can
+/// be ran as part of a "second phase" of the linting process.
+pub(crate) fn process_file_with_fs(
+    ctx: &TraversalOptions,
+    mut workspace_file: WorkspaceFile,
+) -> SecondPhaseFileResult {
+    let _span = tracing::trace_span!("process_file_with_fs", path =? workspace_file.path.display())
+        .entered();
+
+    let shared_context = &SharedTraversalOptions::new(ctx);
+
+    match ctx.execution.traversal_mode {
+        TraversalMode::Lint {
+            ref suppression_reason,
+            suppress,
+            ..
+        } => {
+            // the unsupported case should be handled already at this point
+            lint_with_fs(
+                shared_context,
+                &mut workspace_file,
+                suppress,
+                suppression_reason.as_deref(),
+            )
+        }
+        _ => Ok(None),
     }
 }

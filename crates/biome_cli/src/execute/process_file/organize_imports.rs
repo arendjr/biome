@@ -10,7 +10,7 @@ use biome_service::file_handlers::{AstroFileHandler, SvelteFileHandler, VueFileH
 
 /// Lints a single file and returns a [FileResult]
 pub(crate) fn organize_imports_with_guard<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     workspace_file: &mut WorkspaceFile,
 ) -> FileResult {
     let _ =

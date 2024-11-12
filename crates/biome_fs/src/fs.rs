@@ -290,18 +290,18 @@ impl<T: FileSystem + ?Sized> FileSystemExt for T {}
 type BoxedTraversal<'fs, 'scope> = Box<dyn FnOnce(&dyn TraversalScope<'scope>) + Send + 'fs>;
 
 pub trait TraversalScope<'scope> {
-    /// Spawn a new filesystem read task.
+    /// Spawns a new filesystem read task.
     ///
-    /// If the provided path exists and is a file, then the [`handle_file`](TraversalContext::handle_path)
-    /// method of the provided [TraversalContext] will be called. If it's a
-    /// directory, it will be recursively traversed and all the files the
-    /// [TraversalContext::can_handle] method of the context
-    /// returns true for will be handled as well
+    /// If the provided path exists and is a file, then the provided
+    /// [TraversalContext::handle_path] method will be called. If it's a
+    /// directory, it will be recursively traversed and all the files for which
+    /// [TraversalContext::can_handle] returns true will be handled as well.
     fn evaluate(&self, context: &'scope dyn TraversalContext, path: PathBuf);
 
-    /// Spawn a new filesystem read task.
+    /// Spawns a new filesystem read task.
     ///
-    /// It's assumed that the provided already exist and was already evaluated via [TraversalContext::can_handle].
+    /// It's assumed that the provided path exists and was already evaluated
+    /// via [TraversalContext::can_handle].
     ///
     /// This method will call [TraversalContext::handle_path].
     fn handle(&self, context: &'scope dyn TraversalContext, path: PathBuf);

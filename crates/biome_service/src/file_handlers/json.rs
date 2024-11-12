@@ -162,6 +162,7 @@ impl ExtensionHandler for JsonFileHandler {
             },
             analyzer: AnalyzerCapabilities {
                 lint: Some(lint),
+                lint_with_fs: None,
                 code_actions: Some(code_actions),
                 rename: None,
                 fix_all: Some(fix_all),

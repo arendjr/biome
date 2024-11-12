@@ -7,6 +7,7 @@ pub use crate::file_handlers::astro::{AstroFileHandler, ASTRO_FENCE};
 use crate::file_handlers::graphql::GraphqlFileHandler;
 pub use crate::file_handlers::svelte::{SvelteFileHandler, SVELTE_FENCE};
 pub use crate::file_handlers::vue::{VueFileHandler, VUE_FENCE};
+use crate::fs_data::FsData;
 use crate::settings::Settings;
 use crate::workspace::{FixFileMode, OrganizeImportsResult};
 use crate::{
@@ -457,9 +458,20 @@ pub(crate) struct LintParams<'a> {
     pub(crate) only: Vec<RuleSelector>,
     pub(crate) skip: Vec<RuleSelector>,
     pub(crate) categories: RuleCategories,
+
+    // TODO: We probably want to move the manifest to the FS services, which
+    //       will allow us to discover all the manifests within the project as
+    //       a start for our monorepo support.
     pub(crate) manifest: Option<PackageJson>,
+
     pub(crate) suppression_reason: Option<String>,
     pub(crate) enabled_rules: Vec<RuleSelector>,
+}
+
+#[derive(Debug)]
+pub(crate) struct LintWithFsParams<'a> {
+    pub(crate) lint: LintParams<'a>,
+    pub(crate) fs_data: &'a FsData,
 }
 
 pub(crate) struct LintResults {
@@ -482,6 +494,7 @@ pub(crate) struct CodeActionsParams<'a> {
 }
 
 type Lint = fn(LintParams) -> LintResults;
+type LintWithFs = fn(LintWithFsParams) -> LintResults;
 type CodeActions = fn(CodeActionsParams) -> PullActionsResult;
 type FixAll = fn(FixAllParams) -> Result<FixFileResult, WorkspaceError>;
 type Rename = fn(&BiomePath, AnyParse, TextSize, String) -> Result<RenameResult, WorkspaceError>;
@@ -491,6 +504,8 @@ type OrganizeImports = fn(AnyParse) -> Result<OrganizeImportsResult, WorkspaceEr
 pub struct AnalyzerCapabilities {
     /// It lints a file
     pub(crate) lint: Option<Lint>,
+    /// It lints a file while also having access to filesystem services
+    pub(crate) lint_with_fs: Option<LintWithFs>,
     /// It extracts code actions for a file
     pub(crate) code_actions: Option<CodeActions>,
     /// Applies fixes to a file

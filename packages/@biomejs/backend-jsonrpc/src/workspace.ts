@@ -22,6 +22,7 @@ export interface BiomePath {
 export type FeatureKind =
 	| "format"
 	| "lint"
+	| "lintWithFs"
 	| "organizeImports"
 	| "search"
 	| "assist"
@@ -1271,6 +1272,10 @@ export interface Nursery {
 	 * Prevent usage of \<img> element in a Next.js project.
 	 */
 	noImgElement?: RuleConfiguration_for_Null;
+	/**
+	 * Succinct description of the rule.
+	 */
+	noImportCycles?: RuleConfiguration_for_Null;
 	/**
 	 * Disallows the use of irregular whitespace characters.
 	 */
@@ -3060,6 +3065,7 @@ export type Category =
 	| "lint/nursery/noHeadElement"
 	| "lint/nursery/noHeadImportInDocument"
 	| "lint/nursery/noImgElement"
+	| "lint/nursery/noImportCycles"
 	| "lint/nursery/noImportantInKeyframe"
 	| "lint/nursery/noInvalidDirectionInLinearGradient"
 	| "lint/nursery/noInvalidGridAreas"

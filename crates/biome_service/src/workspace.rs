@@ -122,8 +122,9 @@ impl FileFeaturesResult {
     }
 
     /// By default, all features are not supported by a file.
-    const WORKSPACE_FEATURES: [(FeatureKind, SupportKind); 6] = [
+    const WORKSPACE_FEATURES: [(FeatureKind, SupportKind); NUM_FEATURE_KINDS] = [
         (FeatureKind::Lint, SupportKind::FileNotSupported),
+        (FeatureKind::LintWithFs, SupportKind::FileNotSupported),
         (FeatureKind::Format, SupportKind::FileNotSupported),
         (FeatureKind::OrganizeImports, SupportKind::FileNotSupported),
         (FeatureKind::Search, SupportKind::FileNotSupported),
@@ -145,6 +146,10 @@ impl FileFeaturesResult {
         if capabilities.analyzer.lint.is_some() {
             self.features_supported
                 .insert(FeatureKind::Lint, SupportKind::Supported);
+        }
+        if capabilities.analyzer.lint_with_fs.is_some() {
+            self.features_supported
+                .insert(FeatureKind::LintWithFs, SupportKind::Supported);
         }
         if capabilities.analyzer.organize_imports.is_some() {
             self.features_supported
@@ -274,6 +279,10 @@ impl FileFeaturesResult {
 
     pub fn supports_lint(&self) -> bool {
         self.supports_for(&FeatureKind::Lint)
+    }
+
+    pub fn supports_lint_with_fs(&self) -> bool {
+        self.supports_for(&FeatureKind::LintWithFs)
     }
 
     pub fn supports_format(&self) -> bool {
@@ -415,16 +424,19 @@ impl SupportKind {
 pub enum FeatureKind {
     Format,
     Lint,
+    LintWithFs,
     OrganizeImports,
     Search,
     Assist,
     Debug,
 }
 
+const NUM_FEATURE_KINDS: usize = 7;
+
 #[derive(Debug, Copy, Clone, Hash, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 #[serde(
-    from = "smallvec::SmallVec<[FeatureKind; 6]>",
-    into = "smallvec::SmallVec<[FeatureKind; 6]>",
+    from = "smallvec::SmallVec<[FeatureKind; NUM_FEATURE_KINDS]>",
+    into = "smallvec::SmallVec<[FeatureKind; NUM_FEATURE_KINDS]>",
     rename_all = "camelCase"
 )]
 pub struct FeatureName(BitFlags<FeatureKind>);
@@ -442,8 +454,8 @@ impl FeatureName {
     }
 }
 
-impl From<SmallVec<[FeatureKind; 6]>> for FeatureName {
-    fn from(value: SmallVec<[FeatureKind; 6]>) -> Self {
+impl From<SmallVec<[FeatureKind; NUM_FEATURE_KINDS]>> for FeatureName {
+    fn from(value: SmallVec<[FeatureKind; NUM_FEATURE_KINDS]>) -> Self {
         value
             .into_iter()
             .fold(FeatureName::empty(), |mut acc, kind| {
@@ -453,7 +465,7 @@ impl From<SmallVec<[FeatureKind; 6]>> for FeatureName {
     }
 }
 
-impl From<FeatureName> for SmallVec<[FeatureKind; 6]> {
+impl From<FeatureName> for SmallVec<[FeatureKind; NUM_FEATURE_KINDS]> {
     fn from(value: FeatureName) -> Self {
         value.iter().collect()
     }
@@ -1019,8 +1031,32 @@ pub trait Workspace: Send + Sync + RefUnwindSafe {
     /// Remove a file from the workspace
     fn close_file(&self, params: CloseFileParams) -> Result<(), WorkspaceError>;
 
-    /// Retrieves the list of diagnostics associated to a file
+    /// Retrieves the list of diagnostics associated with a file.
+    ///
+    /// If you also want to retrieve diagnostics from rules that require
+    /// filesystem access, you should follow-up this call by calling
+    /// [init_fs_services()] and [pull_diagnostics_with_fs_services()] in order.
     fn pull_diagnostics(
+        &self,
+        params: PullDiagnosticsParams,
+    ) -> Result<PullDiagnosticsResult, WorkspaceError>;
+
+    /// Initializes filesystem services inside the workspace.
+    ///
+    /// Before calling this method, [pull_diagnostics()] should be called.
+    ///
+    /// This allows you to run [pull_diagnostics_with_fs_services()] afterwards.
+    fn init_fs_services(&self) -> Result<(), WorkspaceError>;
+
+    /// Retrieves the list of diagnostics associated with a file, with the use
+    /// of filesystem services.
+    ///
+    /// Before calling this method, [init_fs_services()] must be called.
+    ///
+    /// Diagnostics returned by this method should be merged with those returned
+    /// by [pull_diagnostics()]. This method is not a replacement for the other,
+    /// but merely adds results based on rules that require filesystem access.
+    fn pull_diagnostics_with_fs_services(
         &self,
         params: PullDiagnosticsParams,
     ) -> Result<PullDiagnosticsResult, WorkspaceError>;

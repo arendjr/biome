@@ -11,7 +11,7 @@ use biome_service::workspace::FileFeaturesResult;
 use std::path::Path;
 
 pub(crate) fn check_file<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     path: &Path,
     file_features: &'ctx FileFeaturesResult,
 ) -> FileResult {

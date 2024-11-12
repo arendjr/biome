@@ -325,7 +325,7 @@ impl WorkspaceServer {
                 let formatter = &settings.formatter;
                 (&formatter.included_files, &formatter.ignored_files)
             }
-            FeatureKind::Lint => {
+            FeatureKind::Lint | FeatureKind::LintWithFs => {
                 let linter = &settings.linter;
                 (&linter.included_files, &linter.ignored_files)
             }
@@ -621,7 +621,7 @@ impl Workspace for WorkspaceServer {
         Ok(())
     }
 
-    /// Retrieves the list of diagnostics associated with a file
+    /// Retrieves the list of diagnostics associated with a file.
     #[tracing::instrument(level = "trace", skip(self))]
     fn pull_diagnostics(
         &self,
@@ -674,6 +674,21 @@ impl Workspace for WorkspaceServer {
             errors,
             skipped_diagnostics: skipped_diagnostics.into(),
         })
+    }
+
+    /// Initializes filesystem services inside the workspace.
+    fn init_fs_services(&self) -> Result<(), WorkspaceError> {
+        todo!()
+    }
+
+    /// Retrieves the list of diagnostics associated with a file, with the use
+    /// of filesystem services.
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn pull_diagnostics_with_fs_services(
+        &self,
+        params: PullDiagnosticsParams,
+    ) -> Result<PullDiagnosticsResult, WorkspaceError> {
+        todo!()
     }
 
     /// Retrieves the list of code actions available for a given cursor

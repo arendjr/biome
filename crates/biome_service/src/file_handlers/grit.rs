@@ -120,6 +120,7 @@ impl ExtensionHandler for GritFileHandler {
             },
             analyzer: AnalyzerCapabilities {
                 lint: Some(lint),
+                lint_with_fs: None,
                 code_actions: None,
                 rename: None,
                 fix_all: None,

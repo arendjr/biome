@@ -191,6 +191,17 @@ where
         self.request("biome/pull_diagnostics", params)
     }
 
+    fn init_fs_services(&self) -> Result<(), WorkspaceError> {
+        self.request("biome/init_fs_services", ())
+    }
+
+    fn pull_diagnostics_with_fs_services(
+        &self,
+        params: PullDiagnosticsParams,
+    ) -> Result<PullDiagnosticsResult, WorkspaceError> {
+        self.request("biome/pull_diagnostics_with_fs_services", params)
+    }
+
     fn pull_actions(&self, params: PullActionsParams) -> Result<PullActionsResult, WorkspaceError> {
         self.request("biome/pull_actions", params)
     }

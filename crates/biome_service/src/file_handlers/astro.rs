@@ -17,6 +17,7 @@ use biome_rowan::NodeCache;
 use regex::{Matches, Regex, RegexBuilder};
 use std::sync::LazyLock;
 
+use super::javascript::lint_with_fs;
 use super::SearchCapabilities;
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -78,6 +79,7 @@ impl ExtensionHandler for AstroFileHandler {
             },
             analyzer: AnalyzerCapabilities {
                 lint: Some(lint),
+                lint_with_fs: Some(lint_with_fs),
                 code_actions: Some(code_actions),
                 rename: None,
                 fix_all: Some(fix_all),

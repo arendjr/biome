@@ -2235,6 +2235,13 @@
 						{ "type": "null" }
 					]
 				},
+				"noImportCycles": {
+					"description": "Succinct description of the rule.",
+					"anyOf": [
+						{ "$ref": "#/definitions/RuleConfiguration" },
+						{ "type": "null" }
+					]
+				},
 				"noIrregularWhitespace": {
 					"description": "Disallows the use of irregular whitespace characters.",
 					"anyOf": [

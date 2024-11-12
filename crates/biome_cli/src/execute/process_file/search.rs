@@ -8,7 +8,7 @@ use biome_service::workspace::PatternId;
 use std::path::Path;
 
 pub(crate) fn search<'ctx>(
-    ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    ctx: &'ctx SharedTraversalOptions<'ctx>,
     path: &Path,
     pattern: &PatternId,
 ) -> FileResult {
@@ -27,7 +27,7 @@ pub(crate) fn search<'ctx>(
 }
 
 pub(crate) fn search_with_guard<'ctx>(
-    _ctx: &'ctx SharedTraversalOptions<'ctx, '_>,
+    _ctx: &'ctx SharedTraversalOptions<'ctx>,
     workspace_file: &mut WorkspaceFile,
     pattern: &PatternId,
 ) -> FileResult {
@@ -45,7 +45,7 @@ pub(crate) fn search_with_guard<'ctx>(
     let matches_len = result.matches.len();
 
     let search_results = Message::Diagnostics {
-        name: file_name,
+        file_name,
         content: input,
         diagnostics: result
             .matches

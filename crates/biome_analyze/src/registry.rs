@@ -21,6 +21,7 @@ use std::{
 pub enum Phases {
     Syntax = 0,
     Semantic = 1,
+    DependencyGraph = 2,
 }
 
 /// Defines which phase a rule will run. This will be defined
@@ -95,10 +96,16 @@ impl<L: Language> RegistryVisitor<L> for MetadataRegistry {
 /// we have:
 /// - Syntax Phase: No services are offered, thus its rules can be run immediately;
 /// - Semantic Phase: Offers the semantic model, thus these rules can only run
-///     after the "SemanticModel" is ready, which demands a whole transverse of the parsed tree.
+///     after the "SemanticModel" is ready, which demands a full traversal of the parsed tree.
+/// - Dependency Graph Phase: Offers the dependency graph model. This is only
+///     available after all files have been traversed, and imports have been
+///     resolved. This offers enough information for detecting import cycles, as
+///     well as knowing whether imports are available at all. But the
+///     dependencies themselves have not been analyzed yet, so there is not
+///     enough information to get type info out of dependencies, for instance.
 pub struct RuleRegistry<L: Language> {
     /// Holds a collection of rules for each phase.
-    phase_rules: [PhaseRules<L>; 2],
+    phase_rules: [PhaseRules<L>; 3],
 }
 
 impl<L: Language + Default> RuleRegistry<L> {
