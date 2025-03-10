@@ -73,7 +73,7 @@ fn test_resolve_relative_import() {
     ];
 
     let dependency_graph = DependencyGraph::default();
-    dependency_graph.update_imports_for_js_paths(&fs, &project_layout, &added_paths, &[], |path| {
+    dependency_graph.update_graph_for_js_paths(&fs, &project_layout, &added_paths, &[], |path| {
         fs.read_file_from_path(path).ok().and_then(|content| {
             let parsed =
                 biome_js_parser::parse(&content, JsFileSource::tsx(), JsParserOptions::default());
@@ -82,7 +82,7 @@ fn test_resolve_relative_import() {
         })
     });
 
-    let imports = dependency_graph.imports.pin();
+    let imports = dependency_graph.data.pin();
     let file_imports = imports.get(Utf8Path::new("/src/index.ts")).unwrap();
 
     assert_eq!(file_imports.static_imports.len(), 2);
@@ -103,7 +103,7 @@ fn test_resolve_package_import() {
     ];
 
     let dependency_graph = DependencyGraph::default();
-    dependency_graph.update_imports_for_js_paths(&fs, &project_layout, &added_paths, &[], |path| {
+    dependency_graph.update_graph_for_js_paths(&fs, &project_layout, &added_paths, &[], |path| {
         fs.read_file_from_path(path).ok().and_then(|content| {
             let parsed =
                 biome_js_parser::parse(&content, JsFileSource::tsx(), JsParserOptions::default());
@@ -112,7 +112,7 @@ fn test_resolve_package_import() {
         })
     });
 
-    let imports = dependency_graph.imports.pin();
+    let imports = dependency_graph.data.pin();
     let file_imports = imports.get(Utf8Path::new("/src/index.ts")).unwrap();
 
     assert_eq!(file_imports.static_imports.len(), 2);
@@ -195,7 +195,7 @@ fn test_resolve_package_import_in_monorepo_fixtures() {
     ];
 
     let dependency_graph = DependencyGraph::default();
-    dependency_graph.update_imports_for_js_paths(&fs, &project_layout, &added_paths, &[], |path| {
+    dependency_graph.update_graph_for_js_paths(&fs, &project_layout, &added_paths, &[], |path| {
         fs.read_file_from_path(path).ok().and_then(|content| {
             let parsed =
                 biome_js_parser::parse(&content, JsFileSource::tsx(), JsParserOptions::default());
@@ -204,7 +204,7 @@ fn test_resolve_package_import_in_monorepo_fixtures() {
         })
     });
 
-    let imports = dependency_graph.imports.pin();
+    let imports = dependency_graph.data.pin();
     let file_imports = imports
         .get(Utf8Path::new(&format!(
             "{fixtures_path}/frontend/src/index.ts"

@@ -106,6 +106,7 @@ declare_lint_rule! {
         sources: &[RuleSource::EslintReactRefresh("only-export-components")],
         source_kind: RuleSourceKind::Inspired,
         recommended: false,
+        domains: &[RuleDomain::React, RuleDomain::Next],
     }
 }
 
