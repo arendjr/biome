@@ -425,6 +425,7 @@ pub type UseSortedClasses =
     <lint::nursery::use_sorted_classes::UseSortedClasses as biome_analyze::Rule>::Options;
 pub type UseSortedKeys =
     <assist::source::use_sorted_keys::UseSortedKeys as biome_analyze::Rule>::Options;
+pub type UseStableDependencies = < lint :: correctness :: use_stable_dependencies :: UseStableDependencies as biome_analyze :: Rule > :: Options ;
 pub type UseStrictMode =
     <lint::nursery::use_strict_mode::UseStrictMode as biome_analyze::Rule>::Options;
 pub type UseSymbolDescription =

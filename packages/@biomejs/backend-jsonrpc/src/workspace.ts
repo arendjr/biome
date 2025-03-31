@@ -1445,6 +1445,10 @@ export interface Correctness {
 	 */
 	useJsxKeyInIterable?: RuleConfiguration_for_Null;
 	/**
+	 * Succinct description of the rule.
+	 */
+	useStableDependencies?: RuleConfiguration_for_Null;
+	/**
 	 * Enforce "for" loop update clause moving the counter in the right direction.
 	 */
 	useValidForDirection?: RuleConfiguration_for_Null;
@@ -3209,13 +3213,13 @@ export type Category =
 	| "lint/a11y/useValidAriaRole"
 	| "lint/a11y/useValidAriaValues"
 	| "lint/a11y/useValidLang"
+	| "lint/complexity/noAdjacentSpacesInRegex"
 	| "lint/complexity/noBannedTypes"
 	| "lint/complexity/noEmptyTypeParameters"
 	| "lint/complexity/noExcessiveCognitiveComplexity"
 	| "lint/complexity/noExcessiveNestedTestSuites"
 	| "lint/complexity/noExtraBooleanCast"
 	| "lint/complexity/noForEach"
-	| "lint/complexity/noAdjacentSpacesInRegex"
 	| "lint/complexity/noStaticOnlyClass"
 	| "lint/complexity/noThisInStatic"
 	| "lint/complexity/noUselessCatch"
@@ -3276,7 +3280,6 @@ export type Category =
 	| "lint/correctness/noUnknownProperty"
 	| "lint/correctness/noUnknownUnit"
 	| "lint/correctness/noUnmatchableAnbSelector"
-	| "lint/correctness/noUselessContinue"
 	| "lint/correctness/noUnreachable"
 	| "lint/correctness/noUnreachableSuper"
 	| "lint/correctness/noUnsafeFinally"
@@ -3286,6 +3289,7 @@ export type Category =
 	| "lint/correctness/noUnusedLabels"
 	| "lint/correctness/noUnusedPrivateClassMembers"
 	| "lint/correctness/noUnusedVariables"
+	| "lint/correctness/noUselessContinue"
 	| "lint/correctness/noVoidElementsWithChildren"
 	| "lint/correctness/noVoidTypeReturn"
 	| "lint/correctness/useArrayLiterals"
@@ -3294,6 +3298,7 @@ export type Category =
 	| "lint/correctness/useImportExtensions"
 	| "lint/correctness/useIsNan"
 	| "lint/correctness/useJsxKeyInIterable"
+	| "lint/correctness/useStableDependencies"
 	| "lint/correctness/useValidForDirection"
 	| "lint/correctness/useYield"
 	| "lint/nursery/colorNoInvalidHex"
@@ -3311,8 +3316,8 @@ export type Category =
 	| "lint/nursery/noDuplicateAtImportRules"
 	| "lint/nursery/noDuplicateCustomProperties"
 	| "lint/nursery/noDuplicateElseIf"
-	| "lint/nursery/noDuplicateProperties"
 	| "lint/nursery/noDuplicateFields"
+	| "lint/nursery/noDuplicateProperties"
 	| "lint/nursery/noDynamicNamespaceImportAccess"
 	| "lint/nursery/noEnum"
 	| "lint/nursery/noExportedImports"

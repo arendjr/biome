@@ -2140,6 +2140,10 @@ pub struct Correctness {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_jsx_key_in_iterable:
         Option<RuleConfiguration<biome_js_analyze::options::UseJsxKeyInIterable>>,
+    #[doc = "Succinct description of the rule."]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub use_stable_dependencies:
+        Option<RuleConfiguration<biome_js_analyze::options::UseStableDependencies>>,
     #[doc = "Enforce \"for\" loop update clause moving the counter in the right direction."]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_valid_for_direction:
@@ -2203,6 +2207,7 @@ impl Correctness {
         "useImportExtensions",
         "useIsNan",
         "useJsxKeyInIterable",
+        "useStableDependencies",
         "useValidForDirection",
         "useYield",
     ];
@@ -2243,8 +2248,8 @@ impl Correctness {
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[44]),
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[45]),
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[50]),
-        RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[52]),
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[53]),
+        RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[54]),
     ];
     const ALL_RULES_AS_FILTERS: &'static [RuleFilter<'static>] = &[
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[0]),
@@ -2301,6 +2306,7 @@ impl Correctness {
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[51]),
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[52]),
         RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[53]),
+        RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[54]),
     ];
 }
 impl RuleGroupExt for Correctness {
@@ -2572,14 +2578,19 @@ impl RuleGroupExt for Correctness {
                 index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[51]));
             }
         }
-        if let Some(rule) = self.use_valid_for_direction.as_ref() {
+        if let Some(rule) = self.use_stable_dependencies.as_ref() {
             if rule.is_enabled() {
                 index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[52]));
             }
         }
-        if let Some(rule) = self.use_yield.as_ref() {
+        if let Some(rule) = self.use_valid_for_direction.as_ref() {
             if rule.is_enabled() {
                 index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[53]));
+            }
+        }
+        if let Some(rule) = self.use_yield.as_ref() {
+            if rule.is_enabled() {
+                index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[54]));
             }
         }
         index_set
@@ -2846,14 +2857,19 @@ impl RuleGroupExt for Correctness {
                 index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[51]));
             }
         }
-        if let Some(rule) = self.use_valid_for_direction.as_ref() {
+        if let Some(rule) = self.use_stable_dependencies.as_ref() {
             if rule.is_disabled() {
                 index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[52]));
             }
         }
-        if let Some(rule) = self.use_yield.as_ref() {
+        if let Some(rule) = self.use_valid_for_direction.as_ref() {
             if rule.is_disabled() {
                 index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[53]));
+            }
+        }
+        if let Some(rule) = self.use_yield.as_ref() {
+            if rule.is_disabled() {
+                index_set.insert(RuleFilter::Rule(Self::GROUP_NAME, Self::GROUP_RULES[54]));
             }
         }
         index_set
@@ -3094,6 +3110,10 @@ impl RuleGroupExt for Correctness {
                 .use_jsx_key_in_iterable
                 .as_ref()
                 .map(|conf| (conf.level(), conf.get_options())),
+            "useStableDependencies" => self
+                .use_stable_dependencies
+                .as_ref()
+                .map(|conf| (conf.level(), conf.get_options())),
             "useValidForDirection" => self
                 .use_valid_for_direction
                 .as_ref()
@@ -3162,6 +3182,7 @@ impl From<GroupPlainConfiguration> for Correctness {
             use_import_extensions: Some(value.into()),
             use_is_nan: Some(value.into()),
             use_jsx_key_in_iterable: Some(value.into()),
+            use_stable_dependencies: Some(value.into()),
             use_valid_for_direction: Some(value.into()),
             use_yield: Some(value.into()),
         }

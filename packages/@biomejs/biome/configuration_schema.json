@@ -1110,6 +1110,13 @@
 						{ "type": "null" }
 					]
 				},
+				"useStableDependencies": {
+					"description": "Succinct description of the rule.",
+					"anyOf": [
+						{ "$ref": "#/definitions/RuleConfiguration" },
+						{ "type": "null" }
+					]
+				},
 				"useValidForDirection": {
 					"description": "Enforce \"for\" loop update clause moving the counter in the right direction.",
 					"anyOf": [

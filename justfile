@@ -63,7 +63,7 @@ gen-grammar *args='':
 
 # Generates the linter documentation and Rust documentation
 documentation:
-  RUSTDOCFLAGS='-D warnings' cargo documentation
+  RUSTDOCFLAGS='-D warnings' cargo documentation --document-private-items
 
 # Creates a new js lint rule with the given name. Name has to be camel case.
 new-js-lintrule rulename:
@@ -98,9 +98,9 @@ new-graphql-lintrule rulename:
 promote-rule rulename group:
 	cargo run -p xtask_codegen -- promote-rule --name={{rulename}} --group={{group}}
 	just gen-analyzer
-	just documentation
-	-cargo test -p biome_js_analyze -- {{snakecase(rulename)}}
+	cargo test -p biome_js_analyze -- {{snakecase(rulename)}}
 	cargo insta accept
+	just documentation
 
 
 # Format Rust files and TOML files
