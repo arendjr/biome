@@ -1,5 +1,13 @@
 {
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "paths": {
+            "@components/*": ["./src/components/*"]
+        },
+        "skipLibCheck": true,
+        "strict": true
+    },
     "include": [
         "./src"
-    ]
+    ],
 }

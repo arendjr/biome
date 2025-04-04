@@ -98,33 +98,15 @@ impl ProjectLayout {
     /// `path` refers to the package directory, not the `package.json` file
     /// itself.
     pub fn insert_node_manifest(&self, path: Utf8PathBuf, manifest: PackageJson) {
-        self.0.pin().update_or_insert_with(
+        let node_js_package = NodeJsPackage {
+            manifest: Some(manifest.clone()),
+            ..Default::default()
+        };
+
+        self.0.pin().insert(
             path,
-            |data| {
-                let mut node_js_package = NodeJsPackage {
-                    manifest: Default::default(),
-                    diagnostics: Default::default(),
-                    tsconfig: data
-                        .node_package
-                        .as_ref()
-                        .map(|package| package.tsconfig.clone())
-                        .unwrap_or_default(),
-                };
-                node_js_package.manifest = Some(manifest.clone());
-
-                PackageData {
-                    node_package: Some(node_js_package),
-                }
-            },
-            || {
-                let node_js_package = NodeJsPackage {
-                    manifest: Some(manifest.clone()),
-                    ..Default::default()
-                };
-
-                PackageData {
-                    node_package: Some(node_js_package),
-                }
+            PackageData {
+                node_package: Some(node_js_package),
             },
         );
     }
@@ -134,31 +116,13 @@ impl ProjectLayout {
     ///
     /// See also [Self::insert_node_manifest()].
     pub fn insert_serialized_node_manifest(&self, path: Utf8PathBuf, manifest: AnyParse) {
-        self.0.pin().update_or_insert_with(
+        let mut node_js_package = NodeJsPackage::default();
+        node_js_package.insert_serialized_manifest(&manifest.tree());
+
+        self.0.pin().get_or_insert(
             path,
-            |data| {
-                let mut node_js_package = NodeJsPackage {
-                    manifest: Default::default(),
-                    diagnostics: Default::default(),
-                    tsconfig: data
-                        .node_package
-                        .as_ref()
-                        .map(|package| package.tsconfig.clone())
-                        .unwrap_or_default(),
-                };
-                node_js_package.insert_serialized_manifest(&manifest.tree());
-
-                PackageData {
-                    node_package: Some(node_js_package),
-                }
-            },
-            || {
-                let mut node_js_package = NodeJsPackage::default();
-                node_js_package.insert_serialized_manifest(&manifest.tree());
-
-                PackageData {
-                    node_package: Some(node_js_package),
-                }
+            PackageData {
+                node_package: Some(node_js_package),
             },
         );
     }

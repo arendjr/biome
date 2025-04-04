@@ -15,20 +15,6 @@ pub struct NodeJsPackage {
     pub manifest: Option<PackageJson>,
     /// Diagnostics emitted during the operations
     pub diagnostics: Vec<biome_diagnostics::serde::Diagnostic>,
-    /// The `tsconfig.json` manifest
-    pub tsconfig: TsConfigJson,
-}
-
-impl NodeJsPackage {
-    pub fn deserialize_tsconfig(&mut self, content: &ProjectLanguageRoot<TsConfigJson>) {
-        let tsconfig = TsConfigJson::deserialize_manifest(content);
-        let (tsconfig, deserialize_diagnostics) = tsconfig.consume();
-        self.tsconfig = tsconfig.unwrap_or_default();
-        self.diagnostics = deserialize_diagnostics
-            .into_iter()
-            .map(biome_diagnostics::serde::Diagnostic::new)
-            .collect();
-    }
 }
 
 pub(crate) type ProjectLanguageRoot<M> = <<M as Manifest>::Language as Language>::Root;

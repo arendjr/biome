@@ -194,14 +194,17 @@ pub fn get_added_paths<'a>(
         .iter()
         .map(|path| {
             let root = fs.read_file_from_path(path).ok().and_then(|content| {
-                let file_source = path
-                    .extension()
+                path.extension()
                     .and_then(|extension| JsFileSource::try_from_extension(extension).ok())
-                    .unwrap_or_default();
-                let parsed =
-                    biome_js_parser::parse(&content, file_source, JsParserOptions::default());
-                assert!(parsed.diagnostics().is_empty());
-                parsed.try_tree()
+                    .and_then(|file_source| {
+                        let parsed = biome_js_parser::parse(
+                            &content,
+                            file_source,
+                            JsParserOptions::default(),
+                        );
+                        assert!(parsed.diagnostics().is_empty());
+                        parsed.try_tree()
+                    })
             });
             (path, root)
         })

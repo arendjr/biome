@@ -177,10 +177,12 @@ fn test_resolve_package_import_in_monorepo_fixtures() {
 
     let added_paths = [
         BiomePath::new(format!("{fixtures_path}/frontend/src/bar.ts")),
-        BiomePath::new(format!("{fixtures_path}/frontend/src/index.ts")),
+        BiomePath::new(format!("{fixtures_path}/frontend/src/components/Hello.tsx")),
+        BiomePath::new(format!("{fixtures_path}/frontend/src/index.tsx")),
         BiomePath::new(format!(
             "{fixtures_path}/frontend/node_modules/shared/dist/index.js"
         )),
+        BiomePath::new(format!("{fixtures_path}/frontend/tsconfig.json")),
         BiomePath::new(format!("{fixtures_path}/shared/dist/index.js")),
     ];
     let added_paths = get_added_paths(&fs, &added_paths);
@@ -188,16 +190,16 @@ fn test_resolve_package_import_in_monorepo_fixtures() {
     let module_graph = ModuleGraph::default();
     module_graph.update_graph_for_js_paths(&fs, &project_layout, &added_paths, &[]);
 
-    let imports = module_graph.data.pin();
-    let file_imports = imports
+    let module_data = module_graph.data.pin();
+    let module_info = module_data
         .get(Utf8Path::new(&format!(
-            "{fixtures_path}/frontend/src/index.ts"
+            "{fixtures_path}/frontend/src/index.tsx"
         )))
         .unwrap();
 
-    assert_eq!(file_imports.static_imports.len(), 2);
+    assert_eq!(module_info.static_imports.len(), 5);
     assert_eq!(
-        file_imports.static_imports.get("shared"),
+        module_info.static_imports.get("shared"),
         Some(&Import {
             resolved_path: Ok(Utf8PathBuf::from(format!(
                 "{fixtures_path}/shared/dist/index.js"
@@ -205,7 +207,15 @@ fn test_resolve_package_import_in_monorepo_fixtures() {
         })
     );
     assert_eq!(
-        file_imports.static_imports.get("./bar"),
+        module_info.static_imports.get("@component/Hello"),
+        Some(&Import {
+            resolved_path: Ok(Utf8PathBuf::from(format!(
+                "{fixtures_path}/frontend/src/components/Hello.tsx"
+            )))
+        })
+    );
+    assert_eq!(
+        module_info.static_imports.get("./bar"),
         Some(&Import {
             resolved_path: Ok(Utf8PathBuf::from(format!(
                 "{fixtures_path}/frontend/src/bar.ts"
@@ -285,7 +295,8 @@ fn test_resolve_exports() {
         .unwrap()
         .clone();
 
-    // Remove this entry, or the Windows tests fail on the path in the snapshot below:
+    // Remove this entry before the snapshot, and test it separately.
+    // Otherwise the Windows tests fail on the path...
     assert_eq!(
         data.exports.remove(&Text::Static("oh\nno")),
         Some(Export::Reexport(Import {

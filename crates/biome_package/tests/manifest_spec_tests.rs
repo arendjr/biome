@@ -1,6 +1,6 @@
 use biome_diagnostics::{DiagnosticExt, print_diagnostic_to_string};
 use biome_json_parser::{JsonParserOptions, parse_json};
-use biome_package::{NodeJsPackage, Package};
+use biome_package::{Manifest, NodeJsPackage, Package, TsConfigJson};
 use std::ffi::OsStr;
 use std::fs::read_to_string;
 use std::path::Path;
@@ -74,29 +74,27 @@ fn run_invalid_tsconfig(input: &'static str, _: &str, _: &str, _: &str) {
     let input_code = read_to_string(input_file)
         .unwrap_or_else(|err| panic!("failed to read {input_file:?}: {err:?}"));
 
-    let mut project = NodeJsPackage::default();
-    match input_file.extension().map(OsStr::as_encoded_bytes) {
-        Some(b"json") => {
-            let parsed = parse_json(
-                input_code.as_str(),
-                JsonParserOptions::default().with_allow_comments(),
-            );
-            project.deserialize_tsconfig(&parsed.tree());
-        }
-        _ => {
-            panic!("Extension not supported");
-        }
-    };
-
-    let result = project.analyze();
+    let (_tsconfig, deserialize_diagnostics) =
+        match input_file.extension().map(OsStr::as_encoded_bytes) {
+            Some(b"json") => {
+                let parsed = parse_json(
+                    input_code.as_str(),
+                    JsonParserOptions::default().with_allow_comments(),
+                );
+                let tsconfig = TsConfigJson::deserialize_manifest(&parsed.tree());
+                tsconfig.consume()
+            }
+            _ => {
+                panic!("Extension not supported");
+            }
+        };
 
     assert!(
-        project.has_errors() || !result.diagnostics.is_empty(),
+        !deserialize_diagnostics.is_empty(),
         "The file {input} should have diagnostics, but it doesn't have any"
     );
 
-    let mut diagnostics_string = project
-        .diagnostics
+    let diagnostics_string = deserialize_diagnostics
         .into_iter()
         .map(|diagnostic| {
             print_diagnostic_to_string(
@@ -107,15 +105,6 @@ fn run_invalid_tsconfig(input: &'static str, _: &str, _: &str, _: &str) {
         })
         .collect::<Vec<_>>()
         .join("\n\n");
-
-    for diagnostic in result.diagnostics {
-        diagnostics_string.push_str(&print_diagnostic_to_string(
-            &diagnostic
-                .with_file_path(file_name)
-                .with_file_source_code(input_code.as_str()),
-        ));
-        diagnostics_string.push_str("\n\n");
-    }
 
     insta::with_settings!({
         prepend_module_to_snapshot => false,
@@ -131,26 +120,29 @@ fn run_valid_tsconfig(input: &'static str, _: &str, _: &str, _: &str) {
     let input_code = read_to_string(input_file)
         .unwrap_or_else(|err| panic!("failed to read {input_file:?}: {err:?}"));
 
-    let mut project = NodeJsPackage::default();
-    match input_file.extension().map(OsStr::as_encoded_bytes) {
-        Some(b"json") => {
-            let parsed = parse_json(
-                input_code.as_str(),
-                JsonParserOptions::default().with_allow_comments(),
-            );
-            project.deserialize_tsconfig(&parsed.tree());
-        }
-        _ => {
-            panic!("Extension not supported");
-        }
-    };
-
-    let result = project.analyze();
+    let (tsconfig, deserialize_diagnostics) =
+        match input_file.extension().map(OsStr::as_encoded_bytes) {
+            Some(b"json") => {
+                let parsed = parse_json(
+                    input_code.as_str(),
+                    JsonParserOptions::default().with_allow_comments(),
+                );
+                let tsconfig = TsConfigJson::deserialize_manifest(&parsed.tree());
+                tsconfig.consume()
+            }
+            _ => {
+                panic!("Extension not supported");
+            }
+        };
 
     assert!(
-        !project.has_errors() && result.diagnostics.is_empty(),
-        "The file {input} should not have diagnostics, but it has some./"
+        deserialize_diagnostics.is_empty(),
+        "The file {input} should not have diagnostics, but it has some"
     );
+
+    let Some(tsconfig) = tsconfig else {
+        panic!("No parsed TsConfig received from deserialising {input}");
+    };
 
     let mut snapshot_result = String::new();
 
@@ -158,7 +150,7 @@ fn run_valid_tsconfig(input: &'static str, _: &str, _: &str, _: &str) {
     snapshot_result.push_str(&input_code);
     snapshot_result.push_str("\n\n");
     snapshot_result.push_str("## Data structure\n\n");
-    snapshot_result.push_str(&format!("{:#?}", project.tsconfig));
+    snapshot_result.push_str(&format!("{tsconfig:#?}"));
 
     insta::with_settings!({
         prepend_module_to_snapshot => false,
