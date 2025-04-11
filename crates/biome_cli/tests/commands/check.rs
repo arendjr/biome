@@ -2877,3 +2877,45 @@ fn html_enabled_by_arg_check() {
         result,
     ));
 }
+
+#[test]
+fn plugin_error_feedback() {
+    let mut fs = MemoryFileSystem::default();
+    let mut console = BufferConsole::default();
+
+    let config_path = Utf8Path::new("biome.json");
+    fs.insert(config_path.into(), r#"{ "plugins": ["plugin.grit"] }"#);
+
+    let plugin_path = Utf8Path::new("plugin.grit");
+    fs.insert(
+        plugin_path.into(),
+        r#"jsx_self_closing_element {
+  name: identifier {
+    text: `img`
+  }
+  register_diagnostic(
+    span = $name,
+    message = "use Image component instead of img tag"
+  )
+}"#,
+    );
+
+    let file_path = Utf8Path::new("fix.js");
+    fs.insert(file_path.into(), FIX_BEFORE.as_bytes());
+
+    let (fs, result) = run_cli(
+        fs,
+        &mut console,
+        Args::from(["check", file_path.as_str()].as_slice()),
+    );
+
+    assert!(result.is_err(), "run_cli returned {result:?}");
+
+    assert_cli_snapshot(SnapshotPayload::new(
+        module_path!(),
+        "plugin_error_feedback",
+        fs,
+        console,
+        result,
+    ));
+}

@@ -1,0 +1,45 @@
+---
+source: crates/biome_cli/tests/snap_test.rs
+assertion_line: 433
+expression: redactor(content)
+---
+## `biome.json`
+
+```json
+{ "plugins": ["plugin.grit"] }
+```
+
+## `fix.js`
+
+```js
+
+(1 >= -0)
+
+```
+
+## `plugin.grit`
+
+```grit
+jsx_self_closing_element {
+  name: identifier {
+    text: `img`
+  }
+  register_diagnostic(
+    span = $name,
+    message = "use Image component instead of img tag"
+  )
+}
+```
+
+# Termination Message
+
+```block
+internalError/io  INTERNAL  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  no diagnostic message provided
+  
+  ! This diagnostic was derived from an internal Biome error. Potential bug, please report it if necessary.
+  
+
+
+```
