@@ -302,9 +302,6 @@ fn test_resolve_exports() {
 
             var qux = 1;
 
-            /**
-             * TODO: No types can be detected on these yet.
-             */
             export const { a, b, c: [d, e] } = getObject();
 
             /**

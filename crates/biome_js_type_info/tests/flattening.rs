@@ -1,11 +1,12 @@
-use crate::utils::{
-    HardcodedSymbolResolver, PromiseResolver, assert_type_snapshot, get_function_declaration,
-    parse_ts,
-};
+mod utils;
+
 use biome_js_syntax::{AnyJsModuleItem, AnyJsRoot, AnyJsStatement, JsExpressionStatement};
 use biome_js_type_info::Type;
 
-mod utils;
+use utils::{
+    HardcodedSymbolResolver, PromiseResolver, assert_type_snapshot, get_function_declaration,
+    parse_ts,
+};
 
 #[test]
 fn infer_flattened_type_of_promise_returning_function() {

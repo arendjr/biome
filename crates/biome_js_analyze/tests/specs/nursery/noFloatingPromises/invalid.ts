@@ -308,7 +308,7 @@ async function testCallingReturnsPromise(props: Props) {
 const testDestructuringAndCallingReturnsPromise = async ({
 	returnsPromise,
 }: Props) => {
-	returnsPromise(); // FIXME: REGRESSION
+	returnsPromise();
 };
 async function testPassingReturnsPromiseDirectly(
 	returnsPromise: () => Promise<void>
@@ -326,6 +326,37 @@ async function testDestructuringAndCallingReturnsPromiseFromRest({
 }: Props) {
 	rest
 		.returnsPromise()
+		.then(() => {})
+		.finally(() => {});
+}
+
+type PropsWithArrays = {
+	promises: Array<Promise<void>>;
+	tuple: [string, ...Promise<void>[]];
+}
+
+async function testCallingPromisesInsideArrays(props: PropsWithArrays) {
+	props
+		.promises[0]
+		.then(() => {})
+		.finally(() => {});
+
+	const [firstPromise, ...morePromises] = props.promises;
+	firstPromise
+		.then(() => {})
+		.finally(() => {});
+	
+	morePromises[0]
+		.then(() => {})
+		.finally(() => {});
+
+	const [tupleName, ...evenMorePromises] = props.tuple;
+	evenMorePromises[0]
+		.then(() => {})
+		.finally(() => {});
+
+	props
+		.tuple[4]
 		.then(() => {})
 		.finally(() => {});
 }

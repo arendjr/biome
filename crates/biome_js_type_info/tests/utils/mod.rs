@@ -1,4 +1,3 @@
-use crate::Type;
 use biome_js_formatter::context::JsFormatOptions;
 use biome_js_formatter::format_node;
 use biome_js_parser::{JsParserOptions, parse};
@@ -8,6 +7,8 @@ use biome_js_syntax::{
 use biome_js_type_info::{TypeReferenceQualifier, TypeResolver};
 use biome_rowan::AstNode;
 use biome_rowan::Text;
+
+use crate::Type;
 
 pub fn assert_type_snapshot(source_code: &str, ty: Type, test_name: &str) {
     let mut content = String::new();
@@ -84,7 +85,7 @@ pub fn get_function_declaration(root: &AnyJsRoot) -> JsFunctionDeclaration {
             AnyJsStatement::JsFunctionDeclaration(decl) => Some(decl),
             _ => None,
         })
-        .expect("cannot find declaration")
+        .expect("cannot find function declaration")
 }
 
 pub fn parse_ts(code: &str) -> AnyJsRoot {

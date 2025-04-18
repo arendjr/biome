@@ -77,6 +77,16 @@ impl Type {
         Self(Arc::new(TypeInner::Boolean))
     }
 
+    pub fn destructuring_of(ty: Self, destructure_field: DestructureField) -> Self {
+        TypeInner::TypeofExpression(Box::new(TypeofExpression::Destructure(
+            TypeofDestructureExpression {
+                ty,
+                destructure_field,
+            },
+        )))
+        .into()
+    }
+
     pub fn function(function: Function) -> Self {
         Self(Arc::new(TypeInner::Function(Box::new(function))))
     }
@@ -117,6 +127,13 @@ impl Type {
 
     pub fn number() -> Self {
         Self(Arc::new(TypeInner::Number))
+    }
+
+    pub fn object_with_members(members: Arc<[TypeMember]>) -> Self {
+        Self(Arc::new(TypeInner::Object(Box::new(Object {
+            prototype: None,
+            members,
+        }))))
     }
 
     /// Returns the `Type` referenced by this type.
@@ -534,6 +551,31 @@ impl ObjectLiteral {
 #[derive(Clone, Debug, PartialEq, Resolvable)]
 pub struct Tuple(pub(super) Box<[TupleElementType]>);
 
+impl Tuple {
+    pub fn elements(&self) -> &[TupleElementType] {
+        &self.0
+    }
+
+    /// Returns the type at the given index.
+    pub fn get_ty(&self, index: usize) -> Type {
+        // TODO: We may need to make a union with `undefined` if optional.
+        if let Some(elem_type) = self.0.get(index) {
+            elem_type.ty.clone()
+        } else {
+            self.0
+                .last()
+                .filter(|last| last.is_rest)
+                .map(|last| last.ty.clone())
+                .unwrap_or_default()
+        }
+    }
+
+    /// Returns a new tuple starting at the given index.
+    pub fn slice_from(&self, index: usize) -> Self {
+        Self(self.0.iter().skip(index).cloned().collect())
+    }
+}
+
 /// An individual element within a tuple.
 #[derive(Clone, Debug, PartialEq, Resolvable)]
 pub struct TupleElementType {
@@ -575,6 +617,15 @@ impl TypeMember {
             Self::CallSignature(_) | Self::Constructor(_) => false,
             Self::Method(member) => member.is_static,
             Self::Property(member) => member.is_static,
+        }
+    }
+
+    pub fn name(&self) -> Option<Text> {
+        match self {
+            Self::CallSignature(_) => None,
+            Self::Constructor(_) => Some(Text::Static("constructor")),
+            Self::Method(member) => Some(member.name.clone()),
+            Self::Property(member) => Some(member.name.clone()),
         }
     }
 
@@ -825,6 +876,7 @@ pub enum TypeofExpression {
     Addition(TypeofAdditionExpression),
     Await(TypeofAwaitExpression),
     Call(TypeofCallExpression),
+    Destructure(TypeofDestructureExpression),
     New(TypeofNewExpression),
     StaticMember(TypeofStaticMemberExpression),
     Super(TypeofThisOrSuperExpression),
@@ -846,6 +898,23 @@ pub struct TypeofAwaitExpression {
 pub struct TypeofCallExpression {
     pub callee: Type,
     pub arguments: Arc<[CallArgumentType]>,
+}
+
+#[derive(Clone, Debug, PartialEq, Resolvable)]
+pub struct TypeofDestructureExpression {
+    /// The type being destructured.
+    pub ty: Type,
+
+    /// The field being destructured.
+    pub destructure_field: DestructureField,
+}
+
+#[derive(Clone, Debug, PartialEq, Resolvable)]
+pub enum DestructureField {
+    Index(usize),
+    Name(Text),
+    RestExcept(Box<[Text]>),
+    RestFrom(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Resolvable)]

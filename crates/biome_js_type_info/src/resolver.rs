@@ -94,4 +94,4 @@ macro_rules! derive_primitive_resolved {
     };
 }
 
-derive_primitive_resolved!(bool, u64);
+derive_primitive_resolved!(bool, u64, usize);

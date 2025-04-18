@@ -1,7 +1,6 @@
 ---
 source: crates/biome_module_graph/tests/snap/mod.rs
 expression: content
-snapshot_kind: text
 ---
 ## /src/index.ts
 
@@ -24,9 +23,6 @@ export async function baz() {}
 
 var qux = 1;
 
-/**
- * TODO: No types can be detected on these yet.
- */
 export const {
 	a,
 	b,
@@ -53,20 +49,28 @@ export * as renamed2 from "./renamed-reexports";
 Exports {
   "a" => {
     ExportOwnExport => JsOwnExport(
-      Unknown
-      Local name: a
-      JsDoc(
-        TODO: No types can be detected on these yet.
+      Reference(
+        Reference(
+          Call "getObject" {
+            params: Unknown
+            type_args: No types
+          } (No parameters)
+        ).a
       )
+      Local name: a
     )
   }
   "b" => {
     ExportOwnExport => JsOwnExport(
-      Unknown
-      Local name: b
-      JsDoc(
-        TODO: No types can be detected on these yet.
+      Reference(
+        Reference(
+          Call "getObject" {
+            params: Unknown
+            type_args: No types
+          } (No parameters)
+        ).b
       )
+      Local name: b
     )
   }
   "bar" => {
@@ -200,11 +204,17 @@ Exports {
   }
   "d" => {
     ExportOwnExport => JsOwnExport(
-      Unknown
-      Local name: d
-      JsDoc(
-        TODO: No types can be detected on these yet.
+      Reference(
+        Reference(
+          Reference(
+            Call "getObject" {
+              params: Unknown
+              type_args: No types
+            } (No parameters)
+          ).c
+        )[0]
       )
+      Local name: d
     )
   }
   "default" => {
@@ -228,11 +238,17 @@ Exports {
   }
   "e" => {
     ExportOwnExport => JsOwnExport(
-      Unknown
-      Local name: e
-      JsDoc(
-        TODO: No types can be detected on these yet.
+      Reference(
+        Reference(
+          Reference(
+            Call "getObject" {
+              params: Unknown
+              type_args: No types
+            } (No parameters)
+          ).c
+        )[1]
       )
+      Local name: e
     )
   }
   "foo" => {

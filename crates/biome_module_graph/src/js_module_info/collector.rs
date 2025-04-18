@@ -71,6 +71,9 @@ pub(super) struct JsModuleInfoCollector {
 
     /// List of all blanket re-exports.
     blanket_reexports: Vec<JsReexport>,
+
+    /// Map of parsed declarations, for caching purposes.
+    parsed_declarations: FxHashMap<JsSyntaxNode, Box<[(Text, Type)]>>,
 }
 
 impl JsModuleInfoCollector {
@@ -217,7 +220,9 @@ impl JsModuleInfoCollector {
 
                 let name = name_token.as_ref().map(JsSyntaxToken::token_text_trimmed);
                 let ty = match (node, &name) {
-                    (Some(node), Some(name)) => infer_type(node, name),
+                    (Some(node), Some(name)) => {
+                        infer_type(node, name, &mut self.parsed_declarations)
+                    }
                     _ => Type::unknown(),
                 };
 
@@ -563,24 +568,23 @@ fn find_jsdoc(node: &JsSyntaxNode) -> Option<JsdocComment> {
     }
 }
 
-fn infer_type(node: &JsSyntaxNode, binding_name: &TokenText) -> Type {
+fn infer_type(
+    node: &JsSyntaxNode,
+    binding_name: &TokenText,
+    parsed_declarations: &mut FxHashMap<JsSyntaxNode, Box<[(Text, Type)]>>,
+) -> Type {
     for ancestor in node.ancestors() {
-        if let Some(declaration) = AnyJsDeclaration::cast_ref(&ancestor) {
-            return if let AnyJsDeclaration::JsVariableDeclaration(decl) = declaration {
-                decl.declarators()
-                    .into_iter()
-                    .filter_map(|decl| decl.ok())
-                    .find_map(|decl| {
-                        let binding = decl.id().ok()?;
-                        // TODO: Handle object and array patterns
-                        let binding = binding.as_any_js_binding()?.as_js_identifier_binding()?;
-                        let name_token = binding.name_token().ok()?;
-                        (*binding_name == name_token.text_trimmed()).then_some(decl)
-                    })
-                    .and_then(|declarator| Type::from_js_variable_declarator(&declarator))
+        if let Some(decl) = AnyJsDeclaration::cast_ref(&ancestor) {
+            return if let Some(var_decl) = decl.as_js_variable_declaration() {
+                let typed_bindings = parsed_declarations
+                    .entry(var_decl.syntax().clone())
+                    .or_insert_with(|| Type::typed_bindings_from_js_variable_declaration(var_decl));
+                typed_bindings
+                    .iter()
+                    .find_map(|(name, ty)| (*name == binding_name.text()).then(|| ty.clone()))
                     .unwrap_or_default()
             } else {
-                Type::from_any_js_declaration(&declaration)
+                Type::from_any_js_declaration(&decl)
             };
         } else if let Some(declaration) = AnyJsExportDefaultDeclaration::cast_ref(&ancestor) {
             return Type::from_any_js_export_default_declaration(&declaration);
