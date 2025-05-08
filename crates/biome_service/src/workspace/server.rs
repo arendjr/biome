@@ -30,7 +30,7 @@ use crossbeam::channel::Sender;
 use papaya::{Compute, HashMap, HashSet, Operation};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use tokio::sync::watch;
-use tracing::{info, instrument, warn};
+use tracing::{error, info, instrument, warn};
 
 use crate::diagnostics::FileTooLarge;
 use crate::file_handlers::{
@@ -277,11 +277,22 @@ impl WorkspaceServer {
     }
 
     /// Opens the file and marks it as opened by the scanner.
+    ///
+    /// Should only be used for the initial scanner. Watcher updates should use
+    /// [`Self::open_file_by_watcher()`] instead.
     pub(super) fn open_file_by_scanner(
         &self,
         params: OpenFileParams,
     ) -> Result<(), WorkspaceError> {
-        self.open_file_internal(true, params)
+        self.open_file_internal(OpenFileKind::InitialScan, params)
+    }
+
+    /// Opens the file and marks it as opened by the scanner.
+    pub(super) fn open_file_by_watcher(
+        &self,
+        params: OpenFileParams,
+    ) -> Result<(), WorkspaceError> {
+        self.open_file_internal(OpenFileKind::WatcherUpdate, params)
     }
 
     #[tracing::instrument(level = "debug", skip(self, params), fields(
@@ -290,7 +301,7 @@ impl WorkspaceServer {
     ))]
     fn open_file_internal(
         &self,
-        opened_by_scanner: bool,
+        open_kind: OpenFileKind,
         params: OpenFileParams,
     ) -> Result<(), WorkspaceError> {
         let OpenFileParams {
@@ -384,7 +395,8 @@ impl WorkspaceServer {
                     // content is coming from the scanner, we keep the same
                     // content that was already in the document. This means,
                     // active clients are leading over the filesystem.
-                    let content = if document.version.is_some() && opened_by_scanner {
+                    let content = if document.version.is_some() && open_kind.is_opened_by_scanner()
+                    {
                         document.content.clone()
                     } else {
                         content.clone()
@@ -395,7 +407,8 @@ impl WorkspaceServer {
                         version,
                         file_source_index: index,
                         syntax: syntax.clone(),
-                        opened_by_scanner: opened_by_scanner || document.opened_by_scanner,
+                        opened_by_scanner: open_kind.is_opened_by_scanner()
+                            || document.opened_by_scanner,
                     })
                 }
                 None => Operation::Insert(Document {
@@ -403,12 +416,18 @@ impl WorkspaceServer {
                     version,
                     file_source_index: index,
                     syntax: syntax.clone(),
-                    opened_by_scanner,
+                    opened_by_scanner: open_kind.is_opened_by_scanner(),
                 }),
             }
         });
 
-        self.update_service_data(WatcherSignalKind::AddedOrChanged, &path)
+        if open_kind == OpenFileKind::InitialScan {
+            // Don't update service data during the initial scan,
+            // because the scanner will do it explicitly in a batch.
+            Ok(())
+        } else {
+            self.update_service_data(WatcherSignalKind::AddedOrChanged, &path)
+        }
     }
 
     /// Retrieves the parser result for a given file.
@@ -547,6 +566,19 @@ impl WorkspaceServer {
             .get(&project_key)
             .map(|cache| cache.get_analyzer_plugins())
             .unwrap_or_default()
+    }
+
+    /// Updates the [ProjectLayout] for multiple `paths` at once.
+    pub(super) fn update_project_layout_for_paths(
+        &self,
+        signal_kind: WatcherSignalKind,
+        paths: &[BiomePath],
+    ) {
+        for path in paths {
+            if let Err(error) = self.update_project_layout(signal_kind, path) {
+                error!("Error while updating project layout: {error}");
+            }
+        }
     }
 
     /// It accepts a list of ignore files. If the VCS integration is enabled, the files
@@ -795,7 +827,7 @@ impl Workspace for WorkspaceServer {
     }
 
     fn open_file(&self, params: OpenFileParams) -> Result<(), WorkspaceError> {
-        self.open_file_internal(false, params)
+        self.open_file_internal(OpenFileKind::Explicit, params)
     }
 
     fn open_project(&self, params: OpenProjectParams) -> Result<ProjectKey, WorkspaceError> {
@@ -1459,6 +1491,19 @@ impl Workspace for WorkspaceServer {
 
     fn server_info(&self) -> Option<&ServerInfo> {
         None
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OpenFileKind {
+    Explicit,
+    InitialScan,
+    WatcherUpdate,
+}
+
+impl OpenFileKind {
+    const fn is_opened_by_scanner(self) -> bool {
+        matches!(self, Self::InitialScan | Self::WatcherUpdate)
     }
 }
 

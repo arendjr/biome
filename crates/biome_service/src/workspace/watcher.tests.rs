@@ -185,7 +185,7 @@ fn close_modified_file_from_client_before_watcher() {
         .expect("can also open from client");
 
     workspace
-        .open_file_by_scanner(OpenFileParams {
+        .open_file_by_watcher(OpenFileParams {
             project_key,
             path: BiomePath::new("/project/a.js"),
             content: FileContent::FromServer,

@@ -72,7 +72,7 @@ impl WorkspaceServer {
             return Ok(()); // file events outside our projects can be safely ignored.
         };
 
-        self.open_file_by_scanner(OpenFileParams {
+        self.open_file_by_watcher(OpenFileParams {
             project_key,
             path: path.into(),
             content: FileContent::FromServer,
