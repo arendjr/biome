@@ -166,19 +166,19 @@ fn create_process_import(with_trailing_new_line: bool) -> JsImport {
     let binding =
         make::js_identifier_binding(make::ident("process").with_trailing_trivia(whitespace));
     let specifier = make::js_default_import_specifier(binding.into());
-    let clause = make::js_import_default_clause(
-        specifier,
+    let clause = make::js_import_default_clause(specifier).build();
+    let specifier = make::js_import_specifier_clause(
+        clause.into(),
         make::token(T![from]).with_trailing_trivia(whitespace),
-        source.into(),
-    )
-    .build();
+    );
 
     make::js_import(
         make::token(T![import])
             .with_trailing_trivia(whitespace)
             .with_leading_trivia(new_line),
-        clause.into(),
+        source.into(),
     )
+    .with_specifier(specifier)
     .with_semicolon_token(semicolon)
     .build()
 }

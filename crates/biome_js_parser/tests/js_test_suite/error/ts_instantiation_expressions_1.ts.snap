@@ -425,7 +425,12 @@ JsModule {
         },
         JsImport {
             import_token: IMPORT_KW@194..200 "import" [] [],
-            import_clause: missing (required),
+            specifier: JsImportSpecifierClause {
+                import_clause: missing (required),
+                from_token: missing (required),
+            },
+            source: missing (required),
+            assertion: missing (optional),
             semicolon_token: missing (optional),
         },
         JsExpressionStatement {
@@ -1055,8 +1060,12 @@ JsModule {
       1: (empty)
     9: JS_IMPORT@194..200
       0: IMPORT_KW@194..200 "import" [] []
-      1: (empty)
+      1: JS_IMPORT_SPECIFIER_CLAUSE@200..200
+        0: (empty)
+        1: (empty)
       2: (empty)
+      3: (empty)
+      4: (empty)
     10: JS_EXPRESSION_STATEMENT@200..204
       0: TS_TYPE_ASSERTION_EXPRESSION@200..203
         0: L_ANGLE@200..201 "<" [] []

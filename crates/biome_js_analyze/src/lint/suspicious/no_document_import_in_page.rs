@@ -54,8 +54,7 @@ impl Rule for NoDocumentImportInPage {
         }
 
         let import = ctx.query();
-        let import_source = import.import_clause().ok()?.source().ok()?;
-        let module_name = import_source.inner_string_text().ok()?;
+        let module_name = import.source_text().ok()?;
 
         if module_name != "next/document" {
             return None;

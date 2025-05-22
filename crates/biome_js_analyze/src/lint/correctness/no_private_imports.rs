@@ -278,7 +278,12 @@ fn get_restricted_imports_from_module_source(
 ) -> SyntaxResult<Vec<NoPrivateImportsState>> {
     let path: Box<str> = options.target_path.as_str().into();
 
-    let results = match node.syntax().parent().and_then(AnyJsImportClause::cast) {
+    let results = match node
+        .syntax()
+        .ancestors()
+        .skip(1)
+        .find_map(AnyJsImportClause::cast)
+    {
         Some(AnyJsImportClause::JsImportCombinedClause(node)) => {
             let range = node.default_specifier()?.range();
             get_restricted_import_visibility(&Text::Static("default"), options)
@@ -339,11 +344,7 @@ fn get_restricted_imports_from_module_source(
                 })
             })
             .collect(),
-        Some(
-            AnyJsImportClause::JsImportBareClause(_)
-            | AnyJsImportClause::JsImportNamespaceClause(_),
-        )
-        | None => Vec::new(),
+        Some(AnyJsImportClause::JsImportNamespaceClause(_)) | None => Vec::new(),
     };
 
     Ok(results)

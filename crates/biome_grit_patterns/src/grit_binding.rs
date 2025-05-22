@@ -1,8 +1,9 @@
 use crate::{
-    grit_context::GritQueryContext, grit_target_language::GritTargetLanguage,
+    GritTargetSyntaxKind, grit_context::GritQueryContext, grit_target_language::GritTargetLanguage,
     grit_target_node::GritTargetNode, source_location_ext::SourceFileExt, util::TextRangeGritExt,
 };
 use biome_diagnostics::{SourceCode, display::SourceFile};
+use biome_js_syntax::JsSyntaxKind;
 use biome_rowan::TextRange;
 use grit_pattern_matcher::{
     binding::Binding, constant::Constant, effects::Effect, pattern::FileRegistry,
@@ -293,68 +294,100 @@ fn are_equivalent(node1: &GritTargetNode, node2: &GritTargetNode) -> bool {
         return true;
     }
 
-    // If the node kinds are different, then the nodes are not equivalent,
-    // except in the presence of lists:
     // - If both are a list, we don't care about the kind of the list, we just
     //   compare the nodes individually.
     // - If one of them is a list with a single node, we may still find a
     //   match against that node.
-    if node1.kind() != node2.kind() {
-        return if node1.is_list() {
-            if node2.is_list() {
-                let mut children1 = node1.named_children();
-                let mut children2 = node2.named_children();
-                loop {
-                    match (children1.next(), children2.next()) {
-                        (Some(child1), Some(child2)) => {
-                            if !are_equivalent(&child1, &child2) {
-                                break false;
-                            }
-                        }
-                        (None, None) => break true,
-                        _ => break false,
-                    }
-                }
-            } else {
-                let mut children1 = node1.named_children();
-                match (children1.next(), children1.next()) {
-                    (Some(only_child), None) => are_equivalent(&only_child, node2),
-                    _ => false,
-                }
-            }
-        } else if node2.is_list() {
+    if node1.is_list() {
+        if node2.is_list() {
+            let mut children1 = node1.named_children();
             let mut children2 = node2.named_children();
-            match (children2.next(), children2.next()) {
-                (Some(only_child), None) => are_equivalent(node1, &only_child),
-                _ => false,
-            }
+            return loop {
+                match (children1.next(), children2.next()) {
+                    (Some(child1), Some(child2)) => {
+                        if !are_equivalent(&child1, &child2) {
+                            break false;
+                        }
+                    }
+                    (None, None) => break true,
+                    _ => break false,
+                }
+            };
         } else {
-            false
+            let mut children1 = node1.named_children();
+            return match (children1.next(), children1.next()) {
+                (Some(only_child), None) => are_equivalent(&only_child, node2),
+                _ => false,
+            };
+        }
+    } else if node2.is_list() {
+        let mut children2 = node2.named_children();
+        return match (children2.next(), children2.next()) {
+            (Some(only_child), None) => are_equivalent(node1, &only_child),
+            _ => false,
         };
     }
 
-    // If the node kinds are the same, then we need to check the named fields.
-    let named_fields1 = node1.named_children();
-    let mut named_fields2 = node2.named_children();
+    // If the node kinds are incompatible, we cannot have a match.
+    if !are_kinds_compatible(node1.kind(), node2.kind()) {
+        return false;
+    }
+
+    // If the node kinds are the same, then we need to check the named children.
+    let mut children1 = node1.named_children();
+    let mut children2 = node2.named_children();
 
     // If there are no children, this is effectively a leaf node. If two leaf
     // nodes have different sources (see above), then they are not equivalent.
     // If they do not have the same sources, we consider them different.
     let mut is_empty = true;
 
-    // Recurse through the named fields to find the first mismatch.
-    for child1 in named_fields1 {
-        is_empty = false;
+    // Run through the children and check if they are equivalent.
+    let are_equivalent = loop {
+        match (children1.next(), children2.next()) {
+            (Some(child1), Some(child2)) => {
+                is_empty = false;
 
-        match named_fields2.next() {
-            Some(child2) => {
                 if !are_equivalent(&child1, &child2) {
-                    return false;
+                    break false;
                 }
             }
-            None => return false,
+            (None, None) => break true,
+            _ => break false,
         }
-    }
+    };
 
-    named_fields2.next().is_none() && !is_empty
+    are_equivalent && !is_empty
+}
+
+/// Checks if two syntax kinds are compatible.
+pub fn are_kinds_compatible(
+    pattern_kind: GritTargetSyntaxKind,
+    node_kind: GritTargetSyntaxKind,
+) -> bool {
+    match (pattern_kind.as_js_kind(), node_kind.as_js_kind()) {
+        (Some(pattern_kind), Some(node_kind)) => are_js_kinds_compatible(pattern_kind, node_kind),
+        (None, None) => pattern_kind == node_kind,
+        _ => false,
+    }
+}
+
+fn are_js_kinds_compatible(pattern_kind: JsSyntaxKind, node_kind: JsSyntaxKind) -> bool {
+    use JsSyntaxKind::*;
+
+    // Only allow specific import transformations to avoid over-matching
+    match (pattern_kind, node_kind) {
+        // Default import clause can match other import kinds.
+        (
+            JS_IMPORT_DEFAULT_CLAUSE,
+            JS_IMPORT_COMBINED_CLAUSE | JS_IMPORT_NAMED_CLAUSE | JS_IMPORT_NAMESPACE_CLAUSE,
+        ) => true,
+        // Same for default import specifier.
+        (
+            JS_DEFAULT_IMPORT_SPECIFIER,
+            // Comma is included to match combined specifiers.
+            COMMA | JS_NAMED_IMPORT_SPECIFIERS | JS_NAMESPACE_IMPORT_SPECIFIER,
+        ) => true,
+        _ => pattern_kind == node_kind,
+    }
 }

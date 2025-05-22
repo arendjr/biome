@@ -286,7 +286,11 @@ fn is_named_react_export(binding: &Binding, lib: ReactLibrary, name: &str) -> Op
         return Some(false);
     }
 
-    let import = import_specifier.import_clause()?.parent::<JsImport>()?;
+    let import = import_specifier
+        .import_clause()?
+        .syntax()
+        .ancestors()
+        .find_map(JsImport::cast)?;
     import
         .source_text()
         .ok()

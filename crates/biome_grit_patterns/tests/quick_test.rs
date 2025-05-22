@@ -10,9 +10,11 @@ use biome_js_syntax::JsFileSource;
 #[test]
 fn test_query() {
     let parse_grit_result = parse_grit(
-        "
-        `import $what from $where`
-        ",
+        r#"
+        `import { $imports } from "geist/components"` where {
+    $imports <: contains `ButtonLink`
+}
+        "#,
     );
     if !parse_grit_result.diagnostics().is_empty() {
         panic!("Cannot parse query:\n{:?}", parse_grit_result.diagnostics());
@@ -30,7 +32,7 @@ fn test_query() {
         println!("Diagnostics from compiling query:\n{:?}", query.diagnostics);
     }
 
-    let body = r#"import { PrismaClient } from "@prisma/client/runtime";"#;
+    let body = r#"import { Button, ButtonLink, Card } from "geist/components";"#;
 
     let parsed = parse(body, JsFileSource::js_module(), JsParserOptions::default());
 

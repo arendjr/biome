@@ -1224,72 +1224,65 @@ TsDefiniteVariableAnnotation =
 
 AnyJsModuleItem =
 	AnyJsStatement
-	| JsExport
 	| JsImport
+	| JsExport
 JsModuleItemList = AnyJsModuleItem*
 
 JsImport =
 	'import'
-	import_clause: AnyJsImportClause
+	specifier: JsImportSpecifierClause?
+	source: AnyJsModuleSource
+	assertion: JsImportAssertion?
 	';'?
 
+JsImportSpecifierClause =
+	import_clause: AnyJsImportClause
+	'from'
+
+// import ... from "d";
+//        ^^^
 AnyJsImportClause =
-    JsImportBareClause
-    | JsImportNamedClause
+    JsImportNamedClause
     | JsImportDefaultClause
     | JsImportNamespaceClause
 	| JsImportCombinedClause
 
-// import "abcd"
-// import "abcd" assert ...
-JsImportBareClause =
-	source: AnyJsModuleSource
-	assertion: JsImportAssertion?
-
 // import foo from "mod"
+//        ^^^
 // import type foo from "mod"
+//        ^^^^^^^^
 JsImportDefaultClause =
 	'type'?
 	default_specifier: JsDefaultImportSpecifier
-	'from'
-	source: AnyJsModuleSource
-	assertion: JsImportAssertion?
 
 // import * as foo from "mod";
+//        ^^^^^^^^
 // import type * as foo from "mod";
+//        ^^^^^^^^^^^^^
 JsImportNamespaceClause =
 	'type'?
 	namespace_specifier: JsNamespaceImportSpecifier
-	'from'
-	source: AnyJsModuleSource
-	assertion: JsImportAssertion?
 
 // import { a, b: c } from "d";
-//        ^^^^^^^^^^^^^^^^^^^^
+//        ^^^^^^^^^^^
 // import { type a } from "c";
-//        ^^^^^^^^^^^^^^^^^^^
+//        ^^^^^^^^^^
 // import type { foo } from "mod";
-//        ^^^^^^^^^^^^^^^^^^^^^^^
+//        ^^^^^^^^^^^^
 JsImportNamedClause =
     'type'?
 	named_specifiers: JsNamedImportSpecifiers
-    'from'
-    source: AnyJsModuleSource
-    assertion: JsImportAssertion?
 
 // import c, { b } from "c"
-//        ^^^^^^^^^^^^^^^^^
+//        ^^^^^^^^
 // import foo, { type bar } from "mod";
-//        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//        ^^^^^^^^^^^^^^^^^
 // import foo, * as bar from "mod";
-//        ^^^^^^^^^^^^^^^^^^^^^^^^
+//        ^^^^^^^^^^^^^
 JsImportCombinedClause =
 	default_specifier: JsDefaultImportSpecifier
 	','
 	specifier: AnyJsCombinedSpecifier
-	'from'
-	source: AnyJsModuleSource
-	assertion: JsImportAssertion?
 
 AnyJsCombinedSpecifier = JsNamedImportSpecifiers | JsNamespaceImportSpecifier
 

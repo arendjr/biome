@@ -3,7 +3,7 @@ use biome_analyze::{
 };
 use biome_console::markup;
 use biome_js_factory::make;
-use biome_js_syntax::{AnyJsImportAssertionEntry, JsImport, JsImportDefaultClause, T};
+use biome_js_syntax::{AnyJsImportAssertionEntry, JsImport, T};
 use biome_rowan::{
     AstNode, AstSeparatedElement, AstSeparatedList, BatchMutationExt, TriviaPieceKind,
 };
@@ -62,7 +62,7 @@ declare_lint_rule! {
 }
 
 impl Rule for UseJsonImportAttribute {
-    type Query = ResolvedImports<JsImportDefaultClause>;
+    type Query = ResolvedImports<JsImport>;
     type State = UseJsonImportAttributeState;
     type Signals = Option<Self::State>;
     type Options = UseJsonImportAttributeOptions;

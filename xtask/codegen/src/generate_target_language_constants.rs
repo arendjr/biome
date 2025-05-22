@@ -25,6 +25,7 @@ pub fn generate_target_language_constants(
                 //       start supporting other languages with Grit.
                 .filter_map(|(index, name, optional)| match (name.as_str(), optional) {
                     ("async", true) => Some(format!("({node_kind}, {index}, OnlyIf(&[\"\"])),")),
+                    ("type", true) => Some(format!("({node_kind}, {index}, OnlyIf(&[\"\"])),")),
                     (";", true) => Some(format!("({node_kind}, {index}, Always),")),
                     _ => None,
                 })

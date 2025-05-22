@@ -13,9 +13,6 @@ impl FormatNodeRule<JsImportCombinedClause> for FormatJsImportCombinedClause {
             default_specifier,
             comma_token,
             specifier,
-            from_token,
-            source,
-            assertion,
         } = node.as_fields();
         write![
             f,
@@ -24,17 +21,7 @@ impl FormatNodeRule<JsImportCombinedClause> for FormatJsImportCombinedClause {
                 comma_token.format(),
                 space(),
                 specifier.format(),
-                space(),
-                from_token.format(),
-                space(),
-                source.format(),
             ]
-        ]?;
-
-        if let Some(assertion) = assertion {
-            write!(f, [assertion.format()])?;
-        }
-
-        Ok(())
+        ]
     }
 }

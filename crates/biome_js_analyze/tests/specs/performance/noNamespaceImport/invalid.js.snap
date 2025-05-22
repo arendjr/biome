@@ -15,7 +15,7 @@ invalid.js:1:8 lint/performance/noNamespaceImport ━━━━━━━━━━
   ! Avoid namespace imports, it can prevent efficient tree shaking and increase bundle size.
   
   > 1 │ import * as foo from "foo"
-      │        ^^^^^^^^^^^^^^^^^^^
+      │        ^^^^^^^^
     2 │ 
   
   i Use named imports instead.

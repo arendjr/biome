@@ -842,8 +842,9 @@ impl Rule for OrganizeImports {
                             }
                             export.with_export_clause(clause).into()
                         }
-                        AnyJsModuleItem::JsImport(import) => {
-                            let mut clause = import.import_clause().ok()?;
+                        AnyJsModuleItem::JsImport(mut import) => {
+                            let specifier = import.specifier()?;
+                            let mut clause = specifier.import_clause().ok()?;
                             if *are_specifiers_unsorted {
                                 // Sort named specifiers
                                 if let Some(sorted_specifiers) =
@@ -854,10 +855,12 @@ impl Rule for OrganizeImports {
                             }
                             if *are_attributes_unsorted {
                                 // Sort import attributes
-                                let sorted_attrs = clause.attribute().and_then(sort_attributes);
-                                clause = clause.with_attribute(sorted_attrs);
+                                let sorted_attrs = import.attribute().and_then(sort_attributes);
+                                import = import.with_attribute(sorted_attrs);
                             }
-                            import.with_import_clause(clause).into()
+                            import
+                                .with_specifier(Some(specifier.with_import_clause(clause)))
+                                .into()
                         }
                     };
                     let mut item = item.into_syntax();
@@ -1082,8 +1085,10 @@ fn merge(
             }
         }
         (AnyJsModuleItem::JsImport(item1), AnyJsModuleItem::JsImport(item2)) => {
-            let clause1 = item1.import_clause().ok()?;
-            let clause2 = item2.import_clause().ok()?;
+            let specifier1 = item1.specifier()?;
+            let specifier2 = item2.specifier()?;
+            let clause1 = specifier1.import_clause().ok()?;
+            let clause2 = specifier2.import_clause().ok()?;
             match (clause1, clause2) {
                 (
                     AnyJsImportClause::JsImportDefaultClause(clause1),
@@ -1101,11 +1106,10 @@ fn merge(
                         default_specifier.trim_trailing_trivia()?,
                         comma_token,
                         namespace_specifier.into(),
-                        clause2.from_token().ok()?,
-                        clause2.source().ok()?,
-                    )
-                    .build();
-                    let merged_item = item2.clone().with_import_clause(merged_clause.into());
+                    );
+                    let merged_item = item2
+                        .clone()
+                        .with_specifier(Some(specifier2.with_import_clause(merged_clause.into())));
 
                     let item1_leading_trivia = item1.syntax().first_leading_trivia()?;
                     let merged_item = if item1_leading_trivia.is_empty() {
@@ -1131,11 +1135,13 @@ fn merge(
                         return None;
                     };
                     let specifiers2 = clause2.named_specifiers().ok()?;
-                    if let Some(meregd_specifiers) =
+                    if let Some(merged_specifiers) =
                         merge_import_specifiers(specifiers1, &specifiers2)
                     {
-                        let merged_clause = clause1.with_specifier(meregd_specifiers.into());
-                        let merged_item = item2.clone().with_import_clause(merged_clause.into());
+                        let merged_clause = clause1.with_specifier(merged_specifiers.into());
+                        let merged_item = item2.clone().with_specifier(Some(
+                            specifier2.with_import_clause(merged_clause.into()),
+                        ));
 
                         let item1_leading_trivia = item1.syntax().first_leading_trivia()?;
                         let merged_item = if item1_leading_trivia.is_empty() {
@@ -1154,11 +1160,13 @@ fn merge(
                 ) => {
                     let specifiers1 = clause1.named_specifiers().ok()?;
                     let specifiers2 = clause2.named_specifiers().ok()?;
-                    if let Some(meregd_specifiers) =
+                    if let Some(merged_specifiers) =
                         merge_import_specifiers(specifiers1, &specifiers2)
                     {
-                        let merged_clause = clause1.with_named_specifiers(meregd_specifiers);
-                        let merged_item = item2.clone().with_import_clause(merged_clause.into());
+                        let merged_clause = clause1.with_named_specifiers(merged_specifiers);
+                        let merged_item = item2.clone().with_specifier(Some(
+                            specifier2.with_import_clause(merged_clause.into()),
+                        ));
                         let item1_leading_trivia = item1.syntax().first_leading_trivia()?;
                         let merged_item = if item1_leading_trivia.is_empty() {
                             merged_item
@@ -1186,11 +1194,10 @@ fn merge(
                         default_specifier.trim_trailing_trivia()?,
                         comma_token,
                         named_specifiers.into(),
-                        clause2.from_token().ok()?,
-                        clause2.source().ok()?,
-                    )
-                    .build();
-                    let merged_item = item2.clone().with_import_clause(merged_clause.into());
+                    );
+                    let merged_item = item2
+                        .clone()
+                        .with_specifier(Some(specifier2.with_import_clause(merged_clause.into())));
                     let item1_leading_trivia = item1.syntax().first_leading_trivia()?;
                     let merged_item = if item1_leading_trivia.is_empty() {
                         merged_item

@@ -1,0 +1,3 @@
+`import { $imports } from "geist/components"` where {
+    $imports <: contains `ButtonLink`
+}

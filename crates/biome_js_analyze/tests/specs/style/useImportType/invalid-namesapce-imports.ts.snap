@@ -18,7 +18,7 @@ invalid-namesapce-imports.ts:1:8 lint/style/useImportType  FIXABLE  ━━━━
   ! All these imports are only used as types.
   
   > 1 │ import * as A from "";
-      │        ^^^^^^^^^^^^^^
+      │        ^^^^^^
     2 │ export { type A }
     3 │ type AA = typeof A.Class;
   

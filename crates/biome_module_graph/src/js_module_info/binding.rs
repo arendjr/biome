@@ -215,8 +215,8 @@ impl JsDeclarationKind {
             }
 
             if let Some(import) = JsImport::cast(ancestor) {
-                return match import.import_clause() {
-                    Ok(import_clause) if import_clause.type_token().is_some() => Self::ImportType,
+                return match import.specifier() {
+                    Some(specifier) if specifier.type_token().is_some() => Self::ImportType,
                     _ => Self::Import,
                 };
             }

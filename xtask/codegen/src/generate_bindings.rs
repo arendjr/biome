@@ -177,37 +177,37 @@ pub(crate) fn generate_workspace_bindings(mode: Mode) -> Result<()> {
     let mut items = vec![AnyJsModuleItem::JsImport(
         make::js_import(
             make::token(T![import]).with_leading_trivia(leading_comment.into_iter()),
+            make::js_module_source(make::js_string_literal("./transport")).into(),
+        )
+        .with_specifier(make::js_import_specifier_clause(
             AnyJsImportClause::JsImportNamedClause(
-                make::js_import_named_clause(
-                    make::js_named_import_specifiers(
-                        make::token(T!['{']),
-                        make::js_named_import_specifier_list(
-                            Some(AnyJsNamedImportSpecifier::JsShorthandNamedImportSpecifier(
-                                make::js_shorthand_named_import_specifier(
-                                    AnyJsBinding::JsIdentifierBinding(make::js_identifier_binding(
-                                        make::ident("Transport"),
-                                    )),
-                                )
-                                .build(),
-                            )),
-                            None,
-                        ),
-                        make::token(T!['}']),
+                make::js_import_named_clause(make::js_named_import_specifiers(
+                    make::token(T!['{']),
+                    make::js_named_import_specifier_list(
+                        Some(AnyJsNamedImportSpecifier::JsShorthandNamedImportSpecifier(
+                            make::js_shorthand_named_import_specifier(
+                                AnyJsBinding::JsIdentifierBinding(make::js_identifier_binding(
+                                    make::ident("Transport"),
+                                )),
+                            )
+                            .build(),
+                        )),
+                        None,
                     ),
-                    make::token(T![from]),
-                    make::js_module_source(make::js_string_literal("./transport")).into(),
-                )
+                    make::token(T!['}']),
+                ))
                 .with_type_token(make::token(T![type]))
                 .build(),
             ),
-        )
+            make::token(T![from]),
+        ))
         .build(),
     )];
 
     items.extend(declarations.into_iter().map(|(decl, description)| {
         let mut export = make::token(T![export]);
         if let Some(description) = description {
-            let comment = format!("/**\n\t* {} \n\t */\n", description);
+            let comment = format!("/**\n\t* {description} \n\t */\n");
             let trivia = vec![
                 (TriviaPieceKind::Newline, "\n"),
                 (TriviaPieceKind::MultiLineComment, comment.as_str()),

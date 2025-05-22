@@ -227,13 +227,14 @@ pub(crate) fn parse_import_or_import_equals_declaration(p: &mut JsParser) -> Par
             ts_only_syntax_error(p, "'import =' declarations", decl.range(p))
         })
     } else {
-        parse_import_clause(p).or_add_diagnostic(p, |p, range| {
-            expected_any(
-                &["default import", "namespace import", "named import"],
-                range,
-                p,
-            )
-        });
+        let is_bare_import =
+            p.at(JS_STRING_LITERAL) || p.cur().is_metavariable() && !p.nth_at(1, T![from]);
+        if !is_bare_import {
+            parse_import_specifier_clause(p).ok();
+        }
+
+        parse_module_source(p).or_add_diagnostic(p, expected_module_source);
+        parse_import_attribute(p).ok();
 
         let end = p.cur_range().start();
 
@@ -247,11 +248,22 @@ pub(crate) fn parse_import_or_import_equals_declaration(p: &mut JsParser) -> Par
     statement
 }
 
-fn parse_import_clause(p: &mut JsParser) -> ParsedSyntax {
-    if p.at(JS_STRING_LITERAL) || p.cur().is_metavariable() && !p.nth_at(1, T![from]) {
-        return parse_import_bare_clause(p);
-    }
+fn parse_import_specifier_clause(p: &mut JsParser) -> ParsedSyntax {
+    let m = p.start();
 
+    parse_import_clause(p).or_add_diagnostic(p, |p, range| {
+        expected_any(
+            &["default import", "namespace import", "named import"],
+            range,
+            p,
+        )
+    });
+
+    p.expect(T![from]);
+    Present(m.complete(p, JS_IMPORT_SPECIFIER_CLAUSE))
+}
+
+fn parse_import_clause(p: &mut JsParser) -> ParsedSyntax {
     let pos = p.source().position();
     let m = p.start();
 
@@ -328,34 +340,17 @@ fn parse_import_default_clauses_rest(
         }
         _ => JS_IMPORT_DEFAULT_CLAUSE,
     };
-    p.expect(T![from]);
-    parse_module_source(p).or_add_diagnostic(p, expected_module_source);
-    parse_import_attribute(p).ok();
     m.complete(p, syntax_type)
-}
-
-fn parse_import_bare_clause(p: &mut JsParser) -> ParsedSyntax {
-    parse_module_source(p).map(|module_source| {
-        let m = module_source.precede(p);
-        parse_import_attribute(p).ok();
-        m.complete(p, JS_IMPORT_BARE_CLAUSE)
-    })
 }
 
 fn parse_import_namespace_clause_rest(p: &mut JsParser, m: Marker) -> CompletedMarker {
     parse_namespace_import_specifier(p).or_add_diagnostic(p, expected_namespace_import);
-    p.expect(T![from]);
-    parse_module_source(p).or_add_diagnostic(p, expected_module_source);
-    parse_import_attribute(p).ok();
 
     m.complete(p, JS_IMPORT_NAMESPACE_CLAUSE)
 }
 
 fn parse_import_named_clause_rest(p: &mut JsParser, m: Marker) -> CompletedMarker {
     parse_named_import_specifier_list(p).or_add_diagnostic(p, expected_named_import);
-    p.expect(T![from]);
-    parse_module_source(p).or_add_diagnostic(p, expected_module_source);
-    parse_import_attribute(p).ok();
 
     m.complete(p, JS_IMPORT_NAMED_CLAUSE)
 }

@@ -244,7 +244,12 @@ fn get_unresolved_imports_from_module_source(
     node: &JsModuleSource,
     options: &GetUnresolvedImportsOptions,
 ) -> SyntaxResult<Vec<NoUnresolvedImportsState>> {
-    let results = match node.syntax().parent().and_then(AnyJsImportClause::cast) {
+    let results = match node
+        .syntax()
+        .ancestors()
+        .skip(1)
+        .find_map(AnyJsImportClause::cast)
+    {
         Some(AnyJsImportClause::JsImportCombinedClause(node)) => {
             let range = node.default_specifier()?.range();
             (!has_exported_symbol(&Text::Static("default"), options))
@@ -305,11 +310,7 @@ fn get_unresolved_imports_from_module_source(
                 })
                 .collect()
         }
-        Some(
-            AnyJsImportClause::JsImportBareClause(_)
-            | AnyJsImportClause::JsImportNamespaceClause(_),
-        )
-        | None => Vec::new(),
+        Some(AnyJsImportClause::JsImportNamespaceClause(_)) | None => Vec::new(),
     };
 
     Ok(results)

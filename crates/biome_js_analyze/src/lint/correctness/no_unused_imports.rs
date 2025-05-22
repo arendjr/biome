@@ -14,7 +14,7 @@ use biome_analyze::{
 use biome_console::markup;
 use biome_diagnostics::Severity;
 use biome_js_factory::make;
-use biome_js_factory::make::{js_identifier_binding, js_module, js_module_item_list};
+use biome_js_factory::make::{js_module, js_module_item_list};
 use biome_js_semantic::{ReferencesExtensions, SemanticModel};
 use biome_js_syntax::{
     AnyJsBinding, AnyJsClassMember, AnyJsCombinedSpecifier, AnyJsDeclaration, AnyJsImportClause,
@@ -24,7 +24,7 @@ use biome_js_syntax::{
 use biome_jsdoc_comment::JsdocComment;
 use biome_rowan::{
     AstNode, AstSeparatedElement, AstSeparatedList, BatchMutationExt, Language, NodeOrToken,
-    SyntaxNode, TextRange, TriviaPieceKind, WalkEvent, declare_node_union,
+    SyntaxNode, TextRange, WalkEvent, declare_node_union,
 };
 use regex::Regex;
 use rustc_hash::FxHashSet;
@@ -268,10 +268,6 @@ impl Rule for NoUnusedImports {
 
     fn run(ctx: &RuleContext<Self>) -> Self::Signals {
         match ctx.query() {
-            AnyJsImportClause::JsImportBareClause(_) => {
-                // ignore bare imports (aka side-effect imports) such as `import "mod"`.
-                None
-            }
             AnyJsImportClause::JsImportCombinedClause(clause) => {
                 let default_local_name = clause.default_specifier().ok()?.local_name().ok()?;
                 let is_default_import_unused = is_unused(ctx, &default_local_name);
@@ -399,8 +395,8 @@ impl Rule for NoUnusedImports {
 
         match state {
             Unused::EmptyStatement(_) | Unused::AllImports(_) => {
-                let parent = node.syntax().parent()?;
-                let leading_trivia = parent.first_leading_trivia()?;
+                let import = node.syntax().grand_parent()?;
+                let leading_trivia = import.first_leading_trivia()?;
                 let mut leading_trivia_pieces = leading_trivia.pieces().collect::<Vec<_>>();
                 let blank_line_pos = leading_trivia_pieces
                     .windows(2)
@@ -408,7 +404,7 @@ impl Rule for NoUnusedImports {
                 if let Some(blank_line_pos) = blank_line_pos {
                     // keep all leading trivia until the last blank line.
                     leading_trivia_pieces.truncate(blank_line_pos + 1);
-                    if let Some(prev_sibling) = parent.prev_sibling() {
+                    if let Some(prev_sibling) = import.prev_sibling() {
                         let new_prev_sibling = prev_sibling
                             .clone()
                             .append_trivia_pieces(leading_trivia_pieces)?;
@@ -416,7 +412,7 @@ impl Rule for NoUnusedImports {
                             prev_sibling.into(),
                             new_prev_sibling.into(),
                         );
-                    } else if let Some(next_sibling) = parent.next_sibling() {
+                    } else if let Some(next_sibling) = import.next_sibling() {
                         let new_next_sibling = next_sibling
                             .clone()
                             .prepend_trivia_pieces(leading_trivia_pieces)?;
@@ -425,7 +421,7 @@ impl Rule for NoUnusedImports {
                             new_next_sibling.into(),
                         );
                     } else if let Some(root) = root.as_js_module() {
-                        mutation.remove_element(parent.clone().into());
+                        mutation.remove_element(import.clone().into());
                         let mut new_root = js_module(
                             root.directives(),
                             js_module_item_list(vec![]),
@@ -443,63 +439,26 @@ impl Rule for NoUnusedImports {
                         mutation.replace_node_discard_trivia(root.clone(), new_root);
                     }
                 }
-                mutation.remove_element(parent.into());
+                mutation.remove_element(import.into());
             }
             Unused::DefaultImport(_) => {
                 let prev_clause = node.as_js_import_combined_clause()?.clone();
                 let new_clause: AnyJsImportClause = match prev_clause.specifier().ok()? {
                     AnyJsCombinedSpecifier::JsNamedImportSpecifiers(named_specifiers) => {
-                        let new_clause = make::js_import_named_clause(
-                            named_specifiers,
-                            prev_clause.from_token().ok()?,
-                            prev_clause.source().ok()?,
-                        );
-                        if let Some(attributes) = prev_clause.assertion() {
-                            new_clause.with_assertion(attributes)
-                        } else {
-                            new_clause
-                        }
-                        .build()
-                        .into()
+                        make::js_import_named_clause(named_specifiers)
+                            .build()
+                            .into()
                     }
                     AnyJsCombinedSpecifier::JsNamespaceImportSpecifier(specifier) => {
-                        let new_clause = make::js_import_namespace_clause(
-                            specifier,
-                            prev_clause.from_token().ok()?,
-                            prev_clause.source().ok()?,
-                        );
-                        if let Some(attributes) = prev_clause.assertion() {
-                            new_clause.with_assertion(attributes)
-                        } else {
-                            new_clause
-                        }
-                        .build()
-                        .into()
+                        make::js_import_namespace_clause(specifier).build().into()
                     }
                 };
                 mutation.replace_node(prev_clause.into(), new_clause);
             }
             Unused::CombinedImport(_) => {
                 let prev_clause = node.as_js_import_combined_clause()?.clone();
-                let default_specifier = prev_clause.default_specifier().ok()?;
-                let local_name = default_specifier.local_name().ok()?;
-                let mut local_name = local_name.as_js_identifier_binding()?.name_token().ok()?;
-                local_name =
-                    local_name.with_trailing_trivia(vec![(TriviaPieceKind::Whitespace, " ")]);
-
-                let new_clause = make::js_import_default_clause(
-                    prev_clause.default_specifier().ok()?.with_local_name(
-                        AnyJsBinding::JsIdentifierBinding(js_identifier_binding(local_name)),
-                    ),
-                    prev_clause.from_token().ok()?,
-                    prev_clause.source().ok()?,
-                );
-                let new_clause = if let Some(attributes) = prev_clause.assertion() {
-                    new_clause.with_assertion(attributes)
-                } else {
-                    new_clause
-                }
-                .build();
+                let new_clause =
+                    make::js_import_default_clause(prev_clause.default_specifier().ok()?).build();
                 mutation.replace_node::<AnyJsImportClause>(prev_clause.into(), new_clause.into());
             }
             Unused::DefaultNamedImport(_, unused_named_specifiers) => {
@@ -529,17 +488,7 @@ impl Rule for NoUnusedImports {
                     used_specifiers,
                     named_specifiers.r_curly_token().ok()?,
                 );
-                let new_clause = make::js_import_named_clause(
-                    used_named_specifiers,
-                    prev_clause.from_token().ok()?,
-                    prev_clause.source().ok()?,
-                );
-                let new_clause = if let Some(attributes) = prev_clause.assertion() {
-                    new_clause.with_assertion(attributes)
-                } else {
-                    new_clause
-                }
-                .build();
+                let new_clause = make::js_import_named_clause(used_named_specifiers).build();
                 mutation.replace_node::<AnyJsImportClause>(prev_clause.into(), new_clause.into());
             }
             Unused::NamedImports(unused_named_specifiers) => {
