@@ -1,15 +1,32 @@
 use crate::{
     AnyJsBinding, AnyJsCombinedSpecifier, AnyJsImportClause, AnyJsModuleSource,
     AnyJsNamedImportSpecifier, JsCallExpression, JsDefaultImportSpecifier, JsImport,
-    JsImportAssertion, JsImportCallExpression, JsModuleSource, JsNamedImportSpecifier,
-    JsNamedImportSpecifiers, JsNamespaceImportSpecifier, JsShorthandNamedImportSpecifier,
-    JsSyntaxKind, JsSyntaxToken, inner_string_text,
+    JsImportAssertion, JsImportCallExpression, JsImportSpecifierClause, JsModuleSource,
+    JsNamedImportSpecifier, JsNamedImportSpecifiers, JsNamespaceImportSpecifier,
+    JsShorthandNamedImportSpecifier, JsSyntaxKind, JsSyntaxToken, inner_string_text,
 };
 use biome_rowan::{
     AstNode, SyntaxError, SyntaxNodeOptionExt, SyntaxResult, TokenText, declare_node_union,
 };
 
 impl JsImport {
+    /// Attribute of this import clause.
+    ///
+    /// ```
+    /// use biome_js_factory::make;
+    /// use biome_js_syntax::T;
+    ///
+    /// let source = make::js_module_source(make::js_string_literal("react"));
+    /// let binding = make::js_identifier_binding(make::ident("React"));
+    /// let specifier = make::js_default_import_specifier(binding.into());
+    /// let clause = make::js_import_default_clause(specifier, make::token(T![from]), source.into()).build();
+    ///
+    /// assert_eq!(clause.source().unwrap().as_js_module_source().unwrap().inner_string_text().unwrap().text(), "react");
+    ///
+    pub fn attribute(&self) -> Option<JsImportAssertion> {
+        self.assertion()
+    }
+
     /// It checks if the source of an import against the string `source_to_check`
     ///
     /// ## Examples
@@ -27,7 +44,21 @@ impl JsImport {
     /// assert_eq!(import.source_text().unwrap().text(), "react");
     /// ```
     pub fn source_text(&self) -> SyntaxResult<TokenText> {
-        self.import_clause()?.source()?.inner_string_text()
+        match self.source()? {
+            AnyJsModuleSource::JsModuleSource(source) => source.inner_string_text(),
+            AnyJsModuleSource::JsMetavariable(_) => Err(SyntaxError::UnexpectedMetavariable),
+        }
+    }
+
+    /// Returns an import clause with `attribute` as import attribute.
+    pub fn with_attribute(self, attribute: Option<JsImportAssertion>) -> Self {
+        self.with_assertion(attribute)
+    }
+}
+
+impl JsImportSpecifierClause {
+    pub fn type_token(&self) -> Option<JsSyntaxToken> {
+        self.import_clause().ok()?.type_token()
     }
 }
 
@@ -43,41 +74,12 @@ impl AnyJsImportClause {
             Self::JsImportDefaultClause(clause) => clause.type_token(),
             Self::JsImportNamedClause(clause) => clause.type_token(),
             Self::JsImportNamespaceClause(clause) => clause.type_token(),
-            Self::JsImportBareClause(_) | Self::JsImportCombinedClause(_) => None,
+            Self::JsImportCombinedClause(_) => None,
         }
-    }
-
-    /// Source of this import clause.
-    ///
-    /// ```
-    /// use biome_js_factory::make;
-    /// use biome_js_syntax::T;
-    ///
-    /// let source = make::js_module_source(make::js_string_literal("react"));
-    /// let binding = make::js_identifier_binding(make::ident("React"));
-    /// let specifier = make::js_default_import_specifier(binding.into());
-    /// let clause = make::js_import_default_clause(specifier, make::token(T![from]), source.into()).build();
-    ///
-    /// assert_eq!(clause.source().unwrap().as_js_module_source().unwrap().inner_string_text().unwrap().text(), "react");
-    /// ```
-    pub fn source(&self) -> SyntaxResult<JsModuleSource> {
-        let source = match self {
-            Self::JsImportBareClause(clause) => clause.source(),
-            Self::JsImportDefaultClause(clause) => clause.source(),
-            Self::JsImportNamedClause(clause) => clause.source(),
-            Self::JsImportNamespaceClause(clause) => clause.source(),
-            Self::JsImportCombinedClause(clause) => clause.source(),
-        };
-
-        source.and_then(|source| match source {
-            AnyJsModuleSource::JsModuleSource(source) => Ok(source),
-            AnyJsModuleSource::JsMetavariable(_) => Err(SyntaxError::UnexpectedMetavariable),
-        })
     }
 
     pub fn named_specifiers(&self) -> Option<JsNamedImportSpecifiers> {
         match self {
-            Self::JsImportBareClause(_) => None,
             Self::JsImportCombinedClause(clause) => {
                 if let Ok(AnyJsCombinedSpecifier::JsNamedImportSpecifiers(named_specifiers)) =
                     clause.specifier()
@@ -93,34 +95,10 @@ impl AnyJsImportClause {
         }
     }
 
-    /// Attribute of this import clause.
-    ///
-    /// ```
-    /// use biome_js_factory::make;
-    /// use biome_js_syntax::T;
-    ///
-    /// let source = make::js_module_source(make::js_string_literal("react"));
-    /// let binding = make::js_identifier_binding(make::ident("React"));
-    /// let specifier = make::js_default_import_specifier(binding.into());
-    /// let clause = make::js_import_default_clause(specifier, make::token(T![from]), source.into()).build();
-    ///
-    /// assert_eq!(clause.source().unwrap().as_js_module_source().unwrap().inner_string_text().unwrap().text(), "react");
-    /// ```
-    pub fn attribute(&self) -> Option<JsImportAssertion> {
-        match self {
-            Self::JsImportBareClause(clause) => clause.assertion(),
-            Self::JsImportDefaultClause(clause) => clause.assertion(),
-            Self::JsImportNamedClause(clause) => clause.assertion(),
-            Self::JsImportNamespaceClause(clause) => clause.assertion(),
-            Self::JsImportCombinedClause(clause) => clause.assertion(),
-        }
-    }
-
     /// Returns an import clause with `named_specifiers` as named specifiers
     /// or the import clause itself if it doesn't accept any named specifiers.
     pub fn with_named_specifiers(self, named_specifiers: JsNamedImportSpecifiers) -> Self {
         match self {
-            Self::JsImportBareClause(_) => self,
             Self::JsImportCombinedClause(clause) => if matches!(
                 clause.specifier(),
                 Ok(AnyJsCombinedSpecifier::JsNamedImportSpecifiers(_))
@@ -135,17 +113,6 @@ impl AnyJsImportClause {
                 clause.with_named_specifiers(named_specifiers).into()
             }
             Self::JsImportNamespaceClause(_) => self,
-        }
-    }
-
-    /// Returns an import clause with `attribute` as import attribute.
-    pub fn with_attribute(self, attribute: Option<JsImportAssertion>) -> Self {
-        match self {
-            Self::JsImportBareClause(clause) => clause.with_assertion(attribute).into(),
-            Self::JsImportCombinedClause(clause) => clause.with_assertion(attribute).into(),
-            Self::JsImportDefaultClause(clause) => clause.with_assertion(attribute).into(),
-            Self::JsImportNamedClause(clause) => clause.with_assertion(attribute).into(),
-            Self::JsImportNamespaceClause(clause) => clause.with_assertion(attribute).into(),
         }
     }
 }

@@ -14,8 +14,8 @@ use biome_js_factory::make;
 use biome_js_semantic::{ReferencesExtensions, SemanticModel};
 use biome_js_syntax::{
     AnyJsCombinedSpecifier, AnyJsIdentifierUsage, AnyJsImportClause, AnyJsModuleItem,
-    AnyJsModuleSource, AnyJsNamedImportSpecifier, AnyJsRoot, JsFileSource, JsIdentifierBinding,
-    JsImport, JsImportCombinedClause, JsImportDefaultClause, JsLanguage, JsModuleItemList,
+    AnyJsNamedImportSpecifier, AnyJsRoot, JsFileSource, JsIdentifierBinding, JsImport,
+    JsImportCombinedClause, JsImportDefaultClause, JsLanguage, JsModuleItemList,
     JsNamedImportSpecifierList, JsNamedImportSpecifiers, JsSyntaxNode, JsSyntaxToken, T,
 };
 use biome_rowan::{
@@ -174,11 +174,11 @@ impl Rule for UseImportType {
             return None;
         }
         let import = ctx.query();
-        let import_clause = import.import_clause().ok()?;
+        let import_clause = import.specifier()?.import_clause().ok()?;
         let extension = ctx.file_path().extension()?;
         let extension = extension.as_bytes();
         // Import attributes and type-only imports are not compatible in ESM.
-        if import_clause.attribute().is_some()
+        if import.attribute().is_some()
             && extension != b"cts"
             && !matches!(ctx.root(), AnyJsRoot::JsScript(_))
         {
@@ -187,7 +187,6 @@ impl Rule for UseImportType {
         let model = ctx.model();
         let style = ctx.options().style;
         match import_clause {
-            AnyJsImportClause::JsImportBareClause(_) => None,
             AnyJsImportClause::JsImportCombinedClause(clause) => {
                 let default_binding = clause.default_specifier().ok()?.local_name().ok()?;
                 let default_binding = default_binding.as_js_identifier_binding()?;
@@ -341,7 +340,7 @@ impl Rule for UseImportType {
 
     fn diagnostic(ctx: &RuleContext<Self>, state: &Self::State) -> Option<RuleDiagnostic> {
         let import = ctx.query();
-        let import_clause = import.import_clause().ok()?;
+        let import_clause = import.specifier()?.import_clause().ok()?;
         let diagnostic = match state {
             ImportTypeFix::UseImportType => RuleDiagnostic::new(
                 rule_category!(),
@@ -431,13 +430,11 @@ impl Rule for UseImportType {
 
     fn action(ctx: &RuleContext<Self>, state: &Self::State) -> Option<JsRuleAction> {
         let import = ctx.query();
-        let import_clause = import.import_clause().ok()?;
+        let specifier = import.specifier()?;
+        let import_clause = specifier.import_clause().ok()?;
         let mut mutation = ctx.root().begin();
         match state {
             ImportTypeFix::UseImportType => match import_clause {
-                AnyJsImportClause::JsImportBareClause(_) => {
-                    return None;
-                }
                 AnyJsImportClause::JsImportCombinedClause(import_combined_clause) => {
                     let type_token = Some(
                         make::token(T![type])
@@ -448,14 +445,13 @@ impl Rule for UseImportType {
                         type_token.clone(),
                     )
                     .ok()?;
-                    let default_import = import.clone().with_import_clause(default_clause.into());
+                    let default_import = import
+                        .clone()
+                        .with_specifier(Some(specifier.with_import_clause(default_clause.into())));
                     let extra_import = extract_combined_specifier_in_new_import(
+                        import,
                         &import_combined_clause,
                         type_token,
-                        import
-                            .semicolon_token()
-                            .is_some()
-                            .then_some(make::token(T![;])),
                     )?;
                     add_module_items(
                         &mut mutation,
@@ -541,18 +537,13 @@ impl Rule for UseImportType {
                             type_token.clone(),
                         )
                         .ok()?;
-                        let default_import =
-                            import.clone().with_import_clause(default_clause.into());
+                        let default_import = import.clone().with_specifier(Some(
+                            specifier.with_import_clause(default_clause.into()),
+                        ));
                         let (named_type, named_value) =
                             split_named_import_specifiers(named, specifiers_requiring_type_marker)?;
-                        let (import_named_type, import_named_value) = new_named_imports(
-                            None,
-                            named_type,
-                            named_value,
-                            import_combined_clause.from_token().ok()?,
-                            import_combined_clause.source().ok()?,
-                            import.semicolon_token(),
-                        );
+                        let (import_named_type, import_named_value) =
+                            new_named_imports(import, named_type, named_value).ok()?;
                         add_module_items(
                             &mut mutation,
                             import.syntax(),
@@ -569,14 +560,8 @@ impl Rule for UseImportType {
                             named_specifiers,
                             specifiers_requiring_type_marker,
                         )?;
-                        let (import_named_type, import_named_value) = new_named_imports(
-                            None,
-                            named_type,
-                            named_value,
-                            import_clause.from_token().ok()?,
-                            import_clause.source().ok()?,
-                            import.semicolon_token(),
-                        );
+                        let (import_named_type, import_named_value) =
+                            new_named_imports(import, named_type, named_value).ok()?;
                         add_module_items(
                             &mut mutation,
                             import.syntax(),
@@ -598,9 +583,9 @@ impl Rule for UseImportType {
                     ),
                 )
                 .ok()?;
-                let new_import = import
-                    .clone()
-                    .with_import_clause(default_import_clause.into());
+                let new_import = import.clone().with_specifier(Some(
+                    specifier.with_import_clause(default_import_clause.into()),
+                ));
                 let extra_import = if let Some(AnyJsCombinedSpecifier::JsNamedImportSpecifiers(
                     named_specifiers,
                 )) = import_combined_clause
@@ -612,7 +597,7 @@ impl Rule for UseImportType {
                         .iter()
                         .map(|specifier| specifier.range().start())
                         .collect::<FxHashSet<_>>();
-                    let source = import_combined_clause
+                    let source = import
                         .source()
                         .ok()?
                         .with_leading_trivia_pieces([])?
@@ -640,30 +625,21 @@ impl Rule for UseImportType {
                         make::js_named_import_specifier_list(new_specifiers, new_separators);
                     let named_specifiers = named_specifiers.with_specifiers(new_specifiers);
                     let import_clause = AnyJsImportClause::from(
-                        make::js_import_named_clause(
-                            named_specifiers,
-                            make::token(T![from])
-                                .with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]),
-                            source,
-                        )
-                        .build(),
+                        make::js_import_named_clause(named_specifiers).build(),
                     );
                     make::js_import(
                         make::token(T![import])
                             .with_leading_trivia([(TriviaPieceKind::Newline, "\n")])
                             .with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]),
-                        import_clause,
+                        source,
                     )
+                    .with_specifier(make::js_import_specifier_clause(
+                        import_clause,
+                        make::token(T![from]),
+                    ))
                     .build()
                 } else {
-                    extract_combined_specifier_in_new_import(
-                        import_combined_clause,
-                        None,
-                        import
-                            .semicolon_token()
-                            .is_some()
-                            .then_some(make::token(T![;])),
-                    )?
+                    extract_combined_specifier_in_new_import(import, import_combined_clause, None)?
                 };
                 add_module_items(
                     &mut mutation,
@@ -679,9 +655,9 @@ impl Rule for UseImportType {
                 };
                 let default_import_clause =
                     extract_into_default_import_clause(&import_combined_clause, None).ok()?;
-                let default_import = import
-                    .clone()
-                    .with_import_clause(default_import_clause.into());
+                let default_import = import.clone().with_specifier(Some(
+                    specifier.with_import_clause(default_import_clause.into()),
+                ));
                 if let Some(AnyJsCombinedSpecifier::JsNamedImportSpecifiers(named)) =
                     import_combined_clause
                         .specifier()
@@ -690,14 +666,8 @@ impl Rule for UseImportType {
                 {
                     let (named_type, named_value) =
                         split_named_import_specifiers(named, specifiers_requiring_type_marker)?;
-                    let (import_named_type, import_named_value) = new_named_imports(
-                        None,
-                        named_type,
-                        named_value,
-                        import_combined_clause.from_token().ok()?,
-                        import_combined_clause.source().ok()?,
-                        import.semicolon_token(),
-                    );
+                    let (import_named_type, import_named_value) =
+                        new_named_imports(import, named_type, named_value).ok()?;
                     add_module_items(
                         &mut mutation,
                         import.syntax(),
@@ -709,15 +679,12 @@ impl Rule for UseImportType {
                     );
                 } else {
                     let extra_import = extract_combined_specifier_in_new_import(
+                        import,
                         &import_combined_clause,
                         Some(
                             make::token(T![type])
                                 .with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]),
                         ),
-                        import
-                            .semicolon_token()
-                            .is_some()
-                            .then_some(make::token(T![;])),
                     )?;
                     add_module_items(
                         &mut mutation,
@@ -923,31 +890,22 @@ fn extract_into_default_import_clause(
     import_clause: &JsImportCombinedClause,
     type_token: Option<JsSyntaxToken>,
 ) -> SyntaxResult<JsImportDefaultClause> {
-    let from_token = import_clause
-        .from_token()?
-        .with_leading_trivia([(TriviaPieceKind::Whitespace, " ")]);
-    let result = make::js_import_default_clause(
-        import_clause.default_specifier()?,
-        from_token,
-        import_clause.source()?,
-    )
-    .build()
-    .with_type_token(type_token);
+    let result = make::js_import_default_clause(import_clause.default_specifier()?)
+        .build()
+        .with_type_token(type_token);
     Ok(result)
 }
 
 fn extract_combined_specifier_in_new_import(
+    import: &JsImport,
     import_clause: &JsImportCombinedClause,
     type_token: Option<JsSyntaxToken>,
-    semicolon_token: Option<JsSyntaxToken>,
 ) -> Option<JsImport> {
     let comma_trailing_trivia =
         trim_leading_trivia_pieces(import_clause.comma_token().ok()?.trailing_trivia().pieces());
     let comma_leading_trivia =
         trim_trailing_trivia_pieces(import_clause.comma_token().ok()?.leading_trivia().pieces());
-    let from_token =
-        make::token(T![from]).with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]);
-    let source = import_clause
+    let source = import
         .source()
         .ok()?
         .with_leading_trivia_pieces([])?
@@ -978,17 +936,17 @@ fn extract_combined_specifier_in_new_import(
                 }
                 let new_specifiers = JsNamedImportSpecifierList::unwrap_cast(new_specifiers);
                 let named_specifiers = named_specifiers.with_specifiers(new_specifiers);
-                make::js_import_named_clause(named_specifiers, from_token, source)
+                make::js_import_named_clause(named_specifiers)
                     .build()
                     .prepend_trivia_pieces(comma_trailing_trivia)?
                     .with_type_token(type_token)
             } else {
-                make::js_import_named_clause(named_specifiers, from_token, source).build()
+                make::js_import_named_clause(named_specifiers).build()
             };
             AnyJsImportClause::from(import_clause)
         }
         AnyJsCombinedSpecifier::JsNamespaceImportSpecifier(specifier) => AnyJsImportClause::from(
-            make::js_import_namespace_clause(specifier, from_token, source)
+            make::js_import_namespace_clause(specifier)
                 .build()
                 .prepend_trivia_pieces(comma_trailing_trivia)?
                 .with_type_token(type_token),
@@ -998,42 +956,51 @@ fn extract_combined_specifier_in_new_import(
         make::token(T![import])
             .with_leading_trivia([(TriviaPieceKind::Newline, "\n")])
             .with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]),
-        import_clause,
+        source,
     )
+    .with_specifier(make::js_import_specifier_clause(
+        import_clause,
+        make::token(T![from]),
+    ))
     .build()
-    .with_semicolon_token(semicolon_token)
+    .with_semicolon_token(import.semicolon_token())
     .prepend_trivia_pieces(comma_leading_trivia)
 }
 
 fn new_named_imports(
-    import_token: Option<JsSyntaxToken>,
+    import: &JsImport,
     named_type_specifiers: JsNamedImportSpecifiers,
     named_value_specifiers: JsNamedImportSpecifiers,
-    from_token: JsSyntaxToken,
-    source: AnyJsModuleSource,
-    semicolon_token: Option<JsSyntaxToken>,
-) -> (JsImport, JsImport) {
+) -> SyntaxResult<(JsImport, JsImport)> {
     let new_import_token = make::token(T![import])
         .with_leading_trivia([(TriviaPieceKind::Newline, "\n")])
         .with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]);
-    let type_import_clause =
-        make::js_import_named_clause(named_type_specifiers, from_token.clone(), source.clone())
-            .with_type_token(
-                make::token(T![type]).with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]),
-            )
-            .build();
+    let type_import_clause = make::js_import_named_clause(named_type_specifiers)
+        .with_type_token(
+            make::token(T![type]).with_trailing_trivia([(TriviaPieceKind::Whitespace, " ")]),
+        )
+        .build();
     let import_type = make::js_import(
-        import_token.unwrap_or_else(|| new_import_token.clone()),
-        type_import_clause.into(),
+        import
+            .import_token()
+            .unwrap_or_else(|_| new_import_token.clone()),
+        import.source()?,
     )
+    .with_specifier(make::js_import_specifier_clause(
+        type_import_clause.into(),
+        make::token(T![from]),
+    ))
     .build()
-    .with_semicolon_token(semicolon_token.clone());
-    let value_import_clause =
-        make::js_import_named_clause(named_value_specifiers, from_token, source).build();
-    let import_value = make::js_import(new_import_token, value_import_clause.into())
+    .with_semicolon_token(import.semicolon_token());
+    let value_import_clause = make::js_import_named_clause(named_value_specifiers).build();
+    let import_value = make::js_import(new_import_token, import.source()?)
+        .with_specifier(make::js_import_specifier_clause(
+            value_import_clause.into(),
+            make::token(T![from]),
+        ))
         .build()
-        .with_semicolon_token(semicolon_token);
-    (import_type, import_value)
+        .with_semicolon_token(import.semicolon_token());
+    Ok((import_type, import_value))
 }
 
 fn split_named_import_specifiers(

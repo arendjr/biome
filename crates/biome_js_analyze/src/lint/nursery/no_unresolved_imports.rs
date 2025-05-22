@@ -308,11 +308,7 @@ fn get_unresolved_imports_from_module_source(
                 })
                 .collect()
         }
-        Some(
-            AnyJsImportClause::JsImportBareClause(_)
-            | AnyJsImportClause::JsImportNamespaceClause(_),
-        )
-        | None => Vec::new(),
+        Some(AnyJsImportClause::JsImportNamespaceClause(_)) | None => Vec::new(),
     };
 
     Ok(results)

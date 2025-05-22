@@ -19,7 +19,7 @@ pub(crate) const DISREGARDED_SNIPPET_SLOTS: &[(JsSyntaxKind, u32, DisregardedSlo
     (JS_FUNCTION_DECLARATION, 0, OnlyIf(&[""])),
     (JS_FUNCTION_EXPORT_DEFAULT_DECLARATION, 0, OnlyIf(&[""])),
     (JS_FUNCTION_EXPRESSION, 0, OnlyIf(&[""])),
-    (JS_IMPORT, 2, Always),
+    (JS_IMPORT, 4, Always),
     (JS_METHOD_CLASS_MEMBER, 1, OnlyIf(&[""])),
     (JS_METHOD_OBJECT_MEMBER, 0, OnlyIf(&[""])),
     (JS_PROPERTY_CLASS_MEMBER, 4, Always),

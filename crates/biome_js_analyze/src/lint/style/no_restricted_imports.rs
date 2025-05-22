@@ -7,15 +7,14 @@ use biome_deserialize::{
 use biome_diagnostics::Severity;
 use biome_js_syntax::{
     AnyJsArrowFunctionParameters, AnyJsBindingPattern, AnyJsCombinedSpecifier, AnyJsExpression,
-    AnyJsImportLike, AnyJsNamedImportSpecifier, AnyJsObjectBindingPatternMember, JsCallExpression,
-    JsDefaultImportSpecifier, JsExportFromClause, JsExportNamedFromClause,
-    JsExportNamedFromSpecifier, JsExportNamedFromSpecifierList, JsIdentifierBinding,
-    JsImportBareClause, JsImportCallExpression, JsImportCombinedClause, JsImportDefaultClause,
-    JsImportNamedClause, JsImportNamespaceClause, JsLanguage, JsModuleSource,
-    JsNamedImportSpecifier, JsNamedImportSpecifiers, JsNamespaceImportSpecifier,
-    JsObjectBindingPattern, JsObjectBindingPatternProperty,
-    JsObjectBindingPatternShorthandProperty, JsShorthandNamedImportSpecifier,
-    JsStaticMemberExpression, JsSyntaxKind, JsVariableDeclarator, inner_string_text,
+    AnyJsImportClause, AnyJsImportLike, AnyJsNamedImportSpecifier, AnyJsObjectBindingPatternMember,
+    JsCallExpression, JsDefaultImportSpecifier, JsExportFromClause, JsExportNamedFromClause,
+    JsExportNamedFromSpecifier, JsExportNamedFromSpecifierList, JsIdentifierBinding, JsImport,
+    JsImportCallExpression, JsLanguage, JsModuleSource, JsNamedImportSpecifier,
+    JsNamedImportSpecifiers, JsNamespaceImportSpecifier, JsObjectBindingPattern,
+    JsObjectBindingPatternProperty, JsObjectBindingPatternShorthandProperty,
+    JsShorthandNamedImportSpecifier, JsStaticMemberExpression, JsSyntaxKind, JsVariableDeclarator,
+    inner_string_text,
 };
 use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxNodeCast, SyntaxToken, TextRange};
 use rustc_hash::FxHashMap;
@@ -668,47 +667,42 @@ impl RestrictedImportVisitor<'_> {
     /// that are being imported, then validate that each of the names is allowed to be imported.
     pub fn visit_import(&mut self, module_source_node: &JsModuleSource) -> Option<()> {
         // Only certain imports are allowed/disallowed, add diagnostic to each disallowed import
-        let clause = module_source_node.syntax().parent()?;
-        match clause.kind() {
-            JsSyntaxKind::JS_IMPORT_BARE_CLAUSE => {
-                let side_effect_import: JsImportBareClause = clause.cast()?;
-                self.visit_side_effect_import(&side_effect_import)
+        let parent = module_source_node.syntax().parent()?;
+        if let Some(import) = JsImport::cast_ref(&parent) {
+            match import.specifier() {
+                Some(specifier) => match specifier.import_clause().ok()? {
+                    AnyJsImportClause::JsImportCombinedClause(import_combined_clause) => {
+                        if let Ok(default_specifier) = import_combined_clause.default_specifier() {
+                            self.visit_default_import(&default_specifier);
+                        }
+                        if let Ok(combined_specifier) = import_combined_clause.specifier() {
+                            self.visit_combined_specifier(&combined_specifier);
+                        }
+                        Some(())
+                    }
+                    AnyJsImportClause::JsImportDefaultClause(import_default_clause) => {
+                        let default_specifier = import_default_clause.default_specifier().ok()?;
+                        self.visit_default_import(&default_specifier)
+                    }
+                    AnyJsImportClause::JsImportNamedClause(import_named_clause) => {
+                        let import_specifiers = import_named_clause.named_specifiers().ok()?;
+                        self.visit_named_imports(&import_specifiers)
+                    }
+                    AnyJsImportClause::JsImportNamespaceClause(import_namespace_clause) => {
+                        let namespace_specifier =
+                            import_namespace_clause.namespace_specifier().ok()?;
+                        self.visit_namespace_import(&namespace_specifier)
+                    }
+                },
+                None => self.visit_side_effect_import(&import),
             }
-            JsSyntaxKind::JS_IMPORT_COMBINED_CLAUSE => {
-                let import_combined_clause: JsImportCombinedClause = clause.cast()?;
-                if let Ok(default_specifier) = import_combined_clause.default_specifier() {
-                    self.visit_default_import(&default_specifier);
-                }
-                if let Ok(combined_specifier) = import_combined_clause.specifier() {
-                    self.visit_combined_specifier(&combined_specifier);
-                }
-                Some(())
-            }
-            JsSyntaxKind::JS_IMPORT_NAMED_CLAUSE => {
-                let import_named_clause: JsImportNamedClause = clause.cast()?;
-                let import_specifiers = import_named_clause.named_specifiers().ok()?;
-                self.visit_named_imports(&import_specifiers)
-            }
-            JsSyntaxKind::JS_EXPORT_NAMED_FROM_CLAUSE => {
-                let export_named_from_clause = clause.cast::<JsExportNamedFromClause>()?;
-                let import_specifiers = export_named_from_clause.specifiers();
-                self.visit_named_reexports(&import_specifiers)
-            }
-            JsSyntaxKind::JS_IMPORT_DEFAULT_CLAUSE => {
-                let import_default_clause: JsImportDefaultClause = clause.cast()?;
-                let default_specifier = import_default_clause.default_specifier().ok()?;
-                self.visit_default_import(&default_specifier)
-            }
-            JsSyntaxKind::JS_IMPORT_NAMESPACE_CLAUSE => {
-                let import_namespace_clause: JsImportNamespaceClause = clause.cast()?;
-                let namespace_specifier = import_namespace_clause.namespace_specifier().ok()?;
-                self.visit_namespace_import(&namespace_specifier)
-            }
-            JsSyntaxKind::JS_EXPORT_FROM_CLAUSE => {
-                let reexport_namespace_clause: JsExportFromClause = clause.cast()?;
-                self.visit_namespace_reexport(&reexport_namespace_clause)
-            }
-            _ => None,
+        } else if let Some(export_named_from_clause) = JsExportNamedFromClause::cast_ref(&parent) {
+            let import_specifiers = export_named_from_clause.specifiers();
+            self.visit_named_reexports(&import_specifiers)
+        } else if let Some(reexport_namespace_clause) = JsExportFromClause::cast(parent) {
+            self.visit_namespace_reexport(&reexport_namespace_clause)
+        } else {
+            None
         }
     }
 
@@ -783,7 +777,7 @@ impl RestrictedImportVisitor<'_> {
     }
 
     /// Checks whether this bare import of the form `import from 'source'` is allowed.
-    fn visit_side_effect_import(&mut self, bare_import: &JsImportBareClause) -> Option<()> {
+    fn visit_side_effect_import(&mut self, bare_import: &JsImport) -> Option<()> {
         let source_token = bare_import
             .source()
             .ok()?

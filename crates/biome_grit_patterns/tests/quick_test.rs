@@ -10,9 +10,7 @@ use biome_js_syntax::JsFileSource;
 #[test]
 fn test_query() {
     let parse_grit_result = parse_grit(
-        "`console.log($arg)` => . where {
-  log(message=\"This is a debug log\", variable=$arg),
-}
+        "`import $stuff from 'module';`
 ",
     );
     if !parse_grit_result.diagnostics().is_empty() {
@@ -31,7 +29,7 @@ fn test_query() {
         println!("Diagnostics from compiling query:\n{:?}", query.diagnostics);
     }
 
-    let body = r#"console.log("grape");"#;
+    let body = r#"import { name } from "module";"#;
 
     let file = GritTargetFile::new(
         "test.js",

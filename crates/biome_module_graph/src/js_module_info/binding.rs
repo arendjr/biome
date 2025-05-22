@@ -199,8 +199,8 @@ impl JsDeclarationKind {
     pub fn from_node(node: &JsSyntaxNode) -> Self {
         let Some(declaration) = node.ancestors().find_map(AnyJsDeclaration::cast) else {
             return match node.ancestors().find_map(JsImport::cast) {
-                Some(import) => match import.import_clause() {
-                    Ok(import_clause) if import_clause.type_token().is_some() => Self::ImportType,
+                Some(import) => match import.specifier() {
+                    Some(specifier) if specifier.type_token().is_some() => Self::ImportType,
                     _ => Self::Import,
                 },
                 None => Self::Unknown,

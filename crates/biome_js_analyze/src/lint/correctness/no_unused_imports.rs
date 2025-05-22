@@ -261,10 +261,6 @@ impl Rule for NoUnusedImports {
 
     fn run(ctx: &RuleContext<Self>) -> Self::Signals {
         match ctx.query() {
-            AnyJsImportClause::JsImportBareClause(_) => {
-                // ignore bare imports (aka side-effect imports) such as `import "mod"`.
-                None
-            }
             AnyJsImportClause::JsImportCombinedClause(clause) => {
                 let default_local_name = clause.default_specifier().ok()?.local_name().ok()?;
                 let is_default_import_unused = is_unused(ctx, &default_local_name);
@@ -432,49 +428,20 @@ impl Rule for NoUnusedImports {
                 let prev_clause = node.as_js_import_combined_clause()?.clone();
                 let new_clause: AnyJsImportClause = match prev_clause.specifier().ok()? {
                     AnyJsCombinedSpecifier::JsNamedImportSpecifiers(named_specifiers) => {
-                        let new_clause = make::js_import_named_clause(
-                            named_specifiers,
-                            prev_clause.from_token().ok()?,
-                            prev_clause.source().ok()?,
-                        );
-                        if let Some(attributes) = prev_clause.assertion() {
-                            new_clause.with_assertion(attributes)
-                        } else {
-                            new_clause
-                        }
-                        .build()
-                        .into()
+                        make::js_import_named_clause(named_specifiers)
+                            .build()
+                            .into()
                     }
                     AnyJsCombinedSpecifier::JsNamespaceImportSpecifier(specifier) => {
-                        let new_clause = make::js_import_namespace_clause(
-                            specifier,
-                            prev_clause.from_token().ok()?,
-                            prev_clause.source().ok()?,
-                        );
-                        if let Some(attributes) = prev_clause.assertion() {
-                            new_clause.with_assertion(attributes)
-                        } else {
-                            new_clause
-                        }
-                        .build()
-                        .into()
+                        make::js_import_namespace_clause(specifier).build().into()
                     }
                 };
                 mutation.replace_node(prev_clause.into(), new_clause);
             }
             Unused::CombinedImport(_) => {
                 let prev_clause = node.as_js_import_combined_clause()?.clone();
-                let new_clause = make::js_import_default_clause(
-                    prev_clause.default_specifier().ok()?,
-                    prev_clause.from_token().ok()?,
-                    prev_clause.source().ok()?,
-                );
-                let new_clause = if let Some(attributes) = prev_clause.assertion() {
-                    new_clause.with_assertion(attributes)
-                } else {
-                    new_clause
-                }
-                .build();
+                let new_clause =
+                    make::js_import_default_clause(prev_clause.default_specifier().ok()?).build();
                 mutation.replace_node::<AnyJsImportClause>(prev_clause.into(), new_clause.into());
             }
             Unused::DefaultNamedImport(_, unused_named_specifiers) => {
@@ -504,17 +471,7 @@ impl Rule for NoUnusedImports {
                     used_specifiers,
                     named_specifiers.r_curly_token().ok()?,
                 );
-                let new_clause = make::js_import_named_clause(
-                    used_named_specifiers,
-                    prev_clause.from_token().ok()?,
-                    prev_clause.source().ok()?,
-                );
-                let new_clause = if let Some(attributes) = prev_clause.assertion() {
-                    new_clause.with_assertion(attributes)
-                } else {
-                    new_clause
-                }
-                .build();
+                let new_clause = make::js_import_named_clause(used_named_specifiers).build();
                 mutation.replace_node::<AnyJsImportClause>(prev_clause.into(), new_clause.into());
             }
             Unused::NamedImports(unused_named_specifiers) => {

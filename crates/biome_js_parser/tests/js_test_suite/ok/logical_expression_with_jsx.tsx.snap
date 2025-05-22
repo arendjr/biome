@@ -44,19 +44,21 @@ JsModule {
     items: JsModuleItemList [
         JsImport {
             import_token: IMPORT_KW@0..7 "import" [] [Whitespace(" ")],
-            import_clause: JsImportDefaultClause {
-                type_token: missing (optional),
-                default_specifier: JsDefaultImportSpecifier {
-                    local_name: JsIdentifierBinding {
-                        name_token: IDENT@7..13 "React" [] [Whitespace(" ")],
+            specifier: JsImportSpecifierClause {
+                import_clause: JsImportDefaultClause {
+                    type_token: missing (optional),
+                    default_specifier: JsDefaultImportSpecifier {
+                        local_name: JsIdentifierBinding {
+                            name_token: IDENT@7..13 "React" [] [Whitespace(" ")],
+                        },
                     },
                 },
                 from_token: FROM_KW@13..18 "from" [] [Whitespace(" ")],
-                source: JsModuleSource {
-                    value_token: JS_STRING_LITERAL@18..25 "'react'" [] [],
-                },
-                assertion: missing (optional),
             },
+            source: JsModuleSource {
+                value_token: JS_STRING_LITERAL@18..25 "'react'" [] [],
+            },
+            assertion: missing (optional),
             semicolon_token: SEMICOLON@25..26 ";" [] [],
         },
         JsVariableStatement {
@@ -443,16 +445,17 @@ JsModule {
   3: JS_MODULE_ITEM_LIST@0..500
     0: JS_IMPORT@0..26
       0: IMPORT_KW@0..7 "import" [] [Whitespace(" ")]
-      1: JS_IMPORT_DEFAULT_CLAUSE@7..25
-        0: (empty)
-        1: JS_DEFAULT_IMPORT_SPECIFIER@7..13
-          0: JS_IDENTIFIER_BINDING@7..13
-            0: IDENT@7..13 "React" [] [Whitespace(" ")]
-        2: FROM_KW@13..18 "from" [] [Whitespace(" ")]
-        3: JS_MODULE_SOURCE@18..25
-          0: JS_STRING_LITERAL@18..25 "'react'" [] []
-        4: (empty)
-      2: SEMICOLON@25..26 ";" [] []
+      1: JS_IMPORT_SPECIFIER_CLAUSE@7..18
+        0: JS_IMPORT_DEFAULT_CLAUSE@7..13
+          0: (empty)
+          1: JS_DEFAULT_IMPORT_SPECIFIER@7..13
+            0: JS_IDENTIFIER_BINDING@7..13
+              0: IDENT@7..13 "React" [] [Whitespace(" ")]
+        1: FROM_KW@13..18 "from" [] [Whitespace(" ")]
+      2: JS_MODULE_SOURCE@18..25
+        0: JS_STRING_LITERAL@18..25 "'react'" [] []
+      3: (empty)
+      4: SEMICOLON@25..26 ";" [] []
     1: JS_VARIABLE_STATEMENT@26..37
       0: JS_VARIABLE_DECLARATION@26..36
         0: (empty)

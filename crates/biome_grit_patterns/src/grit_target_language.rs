@@ -285,11 +285,12 @@ impl GritTargetLanguage {
                 continue;
             }
 
-            if !snippet_trees.iter().any(|tree| {
+            let is_duplicate = snippet_trees.iter().any(|tree| {
                 tree.tree
                     .root_node()
                     .matches_kinds_recursively_with(&parse_result.tree.root_node())
-            }) {
+            });
+            if !is_duplicate {
                 snippet_trees.push(parse_result);
             }
         }

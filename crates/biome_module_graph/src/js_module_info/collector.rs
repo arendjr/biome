@@ -7,7 +7,7 @@ use biome_js_semantic::{SemanticEvent, SemanticEventExtractor};
 use biome_js_syntax::{
     AnyJsCombinedSpecifier, AnyJsDeclaration, AnyJsExportDefaultDeclaration, AnyJsImportClause,
     JsFormalParameter, JsIdentifierBinding, JsSyntaxKind, JsSyntaxNode, JsSyntaxToken,
-    TsIdentifierBinding, inner_string_text,
+    TsIdentifierBinding,
 };
 use biome_js_type_info::{
     FunctionParameter, GLOBAL_RESOLVER, GLOBAL_UNKNOWN_ID, Resolvable, ResolvedTypeData,
@@ -546,14 +546,13 @@ impl JsModuleInfoBag {
         node: biome_js_syntax::JsImport,
         collector: &JsModuleInfoCollector,
     ) -> Option<()> {
-        match node.import_clause().ok()? {
-            AnyJsImportClause::JsImportBareClause(_node) => {}
-            AnyJsImportClause::JsImportCombinedClause(node) => {
-                let source = node.source().ok()?;
-                let source_token = source.as_js_module_source()?.value_token().ok()?;
-                let source = inner_string_text(&source_token);
-                let resolved_path = collector.static_import_paths.get(source.text())?;
+        let import_clause = node.specifier()?.import_clause().ok()?;
 
+        let source = node.source_text().ok()?;
+        let resolved_path = collector.static_import_paths.get(source.text())?;
+
+        match import_clause {
+            AnyJsImportClause::JsImportCombinedClause(node) => {
                 let default_specifier = node.default_specifier().ok()?;
                 let local_name = default_specifier.local_name().ok()?;
                 let local_name = local_name.as_js_identifier_binding()?;
@@ -604,11 +603,6 @@ impl JsModuleInfoBag {
                 }
             }
             AnyJsImportClause::JsImportDefaultClause(node) => {
-                let source = node.source().ok()?;
-                let source_token = source.as_js_module_source()?.value_token().ok()?;
-                let source = inner_string_text(&source_token);
-                let resolved_path = collector.static_import_paths.get(source.text())?;
-
                 let local_name = node.default_specifier().ok()?.local_name().ok()?;
                 let local_name = local_name.as_js_identifier_binding()?;
                 let local_name_token = local_name.name_token().ok()?;
@@ -622,11 +616,6 @@ impl JsModuleInfoBag {
                 );
             }
             AnyJsImportClause::JsImportNamedClause(node) => {
-                let source = node.source().ok()?;
-                let source_token = source.as_js_module_source()?.value_token().ok()?;
-                let source = inner_string_text(&source_token);
-                let resolved_path = collector.static_import_paths.get(source.text())?;
-
                 for specifier in node.named_specifiers().ok()?.specifiers() {
                     let specifier = specifier.ok()?;
                     let local_name = specifier.local_name()?;
@@ -647,11 +636,6 @@ impl JsModuleInfoBag {
                 }
             }
             AnyJsImportClause::JsImportNamespaceClause(node) => {
-                let source = node.source().ok()?;
-                let source_token = source.as_js_module_source()?.value_token().ok()?;
-                let source = inner_string_text(&source_token);
-                let resolved_path = collector.static_import_paths.get(source.text())?;
-
                 let specifier = node.namespace_specifier().ok()?;
                 let local_name = specifier.local_name().ok()?;
                 let local_name = local_name.as_js_identifier_binding()?;

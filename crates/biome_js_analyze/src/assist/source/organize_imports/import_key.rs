@@ -94,55 +94,53 @@ impl ImportInfo {
     fn from_import(
         value: &JsImport,
     ) -> Option<(Self, Option<JsNamedSpecifiers>, Option<JsImportAssertion>)> {
-        let (kind, named_specifiers, source, attributes) = match value.import_clause().ok()? {
-            AnyJsImportClause::JsImportBareClause(_) => {
-                return None;
-            }
-            AnyJsImportClause::JsImportCombinedClause(clause) => {
-                let (kind, named_specifiers) = match clause.specifier().ok()? {
-                    AnyJsCombinedSpecifier::JsNamedImportSpecifiers(specifiers) => {
-                        (ImportStatementKind::DefaultNamed, Some(specifiers))
-                    }
-                    AnyJsCombinedSpecifier::JsNamespaceImportSpecifier(_) => {
-                        (ImportStatementKind::DefaultNamespace, None)
-                    }
-                };
-                (kind, named_specifiers, clause.source(), clause.assertion())
-            }
-            AnyJsImportClause::JsImportDefaultClause(clause) => (
-                if clause.type_token().is_some() {
-                    ImportStatementKind::DefaultType
-                } else {
-                    ImportStatementKind::Default
-                },
-                None,
-                clause.source(),
-                clause.assertion(),
-            ),
-            AnyJsImportClause::JsImportNamedClause(clause) => {
-                let named_specifiers = clause.named_specifiers().ok();
-                (
+        let (kind, named_specifiers, source, attributes) =
+            match value.specifier()?.import_clause().ok()? {
+                AnyJsImportClause::JsImportCombinedClause(clause) => {
+                    let (kind, named_specifiers) = match clause.specifier().ok()? {
+                        AnyJsCombinedSpecifier::JsNamedImportSpecifiers(specifiers) => {
+                            (ImportStatementKind::DefaultNamed, Some(specifiers))
+                        }
+                        AnyJsCombinedSpecifier::JsNamespaceImportSpecifier(_) => {
+                            (ImportStatementKind::DefaultNamespace, None)
+                        }
+                    };
+                    (kind, named_specifiers, value.source(), value.assertion())
+                }
+                AnyJsImportClause::JsImportDefaultClause(clause) => (
                     if clause.type_token().is_some() {
-                        ImportStatementKind::NamedType
+                        ImportStatementKind::DefaultType
                     } else {
-                        ImportStatementKind::Named
+                        ImportStatementKind::Default
                     },
-                    named_specifiers,
-                    clause.source(),
-                    clause.assertion(),
-                )
-            }
-            AnyJsImportClause::JsImportNamespaceClause(clause) => (
-                if clause.type_token().is_some() {
-                    ImportStatementKind::NamespaceType
-                } else {
-                    ImportStatementKind::Namespace
-                },
-                None,
-                clause.source(),
-                clause.assertion(),
-            ),
-        };
+                    None,
+                    value.source(),
+                    value.assertion(),
+                ),
+                AnyJsImportClause::JsImportNamedClause(clause) => {
+                    let named_specifiers = clause.named_specifiers().ok();
+                    (
+                        if clause.type_token().is_some() {
+                            ImportStatementKind::NamedType
+                        } else {
+                            ImportStatementKind::Named
+                        },
+                        named_specifiers,
+                        value.source(),
+                        value.assertion(),
+                    )
+                }
+                AnyJsImportClause::JsImportNamespaceClause(clause) => (
+                    if clause.type_token().is_some() {
+                        ImportStatementKind::NamespaceType
+                    } else {
+                        ImportStatementKind::Namespace
+                    },
+                    None,
+                    value.source(),
+                    value.assertion(),
+                ),
+            };
         let Ok(AnyJsModuleSource::JsModuleSource(source)) = source else {
             return None;
         };
