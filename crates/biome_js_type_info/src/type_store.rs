@@ -6,7 +6,7 @@ use std::{
 use hashbrown::{HashTable, hash_table::Entry};
 use rustc_hash::FxHasher;
 
-use crate::{TypeData, TypeId};
+use crate::{Resolvable, ResolvedTypeId, TypeData, TypeId, TypeReference, TypeResolverLevel};
 
 /// Type store with efficient lookup mechanism.
 ///
@@ -33,15 +33,9 @@ impl TypeStore {
     pub fn from_types(types: Vec<TypeData>) -> Self {
         let mut table = HashTable::new();
         for (i, data) in types.iter().enumerate() {
-            let mut hash = FxHasher::default();
-            data.hash(&mut hash);
-            let hash = hash.finish();
+            let hash = hash_data(data);
 
-            table.insert_unique(hash, i, |i| {
-                let mut hash = FxHasher::default();
-                types[*i].hash(&mut hash);
-                hash.finish()
-            });
+            table.insert_unique(hash, i, |i| hash_data(&types[*i]));
         }
 
         Self { types, table }
@@ -51,11 +45,68 @@ impl TypeStore {
         &self.types
     }
 
+    /// Returns a deduplicated version of this type store.
+    ///
+    /// Also returns the vectors necessary for mapping references.
+    pub fn deduplicated(self, level: TypeResolverLevel) -> (Self, Vec<Option<u32>>, Vec<u32>) {
+        // First find all duplicates and create a map where the "original" can
+        // be found. Whichever index the hash table points at is considered the
+        // original.
+        let mut map = Vec::with_capacity(self.types.len());
+
+        // While populating the map, we also track how many types have been
+        // removed at a given index. We need this for compensating the resolved
+        // IDs.
+        let mut num_removed_types = 0;
+        let mut num_removed_types_at_index = Vec::with_capacity(self.types.len());
+
+        for (i, data) in self.types.iter().enumerate() {
+            let hash = hash_data(data);
+            let expected_index = self
+                .table
+                .find(hash, |i| self.types[*i] == *data)
+                .map(|index| *index as u32);
+
+            if expected_index.is_none_or(|index| index == i as u32) {
+                map.push(None);
+            } else {
+                map.push(expected_index);
+                num_removed_types += 1;
+            }
+
+            num_removed_types_at_index.push(num_removed_types)
+        }
+
+        if num_removed_types == 0 {
+            return (self, map, num_removed_types_at_index); // Nothing to do.
+        }
+
+        // Move all originals into a new vector, mapping resolved IDs as we go.
+        let types = self
+            .types
+            .into_iter()
+            .enumerate()
+            .filter(|(i, _)| map[*i].is_none())
+            .map(|(_, mut data)| {
+                data.update_all_references(|reference| match reference {
+                    TypeReference::Resolved(resolved_id) if resolved_id.level() == level => {
+                        let old_index = resolved_id.index();
+                        let new_index = map[old_index].unwrap_or(old_index as u32);
+                        let new_index = new_index - num_removed_types_at_index[new_index as usize];
+                        *resolved_id = ResolvedTypeId::new(level, TypeId::new(new_index as usize));
+                    }
+                    _ => {}
+                });
+                data
+            })
+            .collect();
+
+        (Self::from_types(types), map, num_removed_types_at_index)
+    }
+
     /// Returns the `TypeId` of the given `data`, if it is registered.
     pub fn find_type(&self, data: &TypeData) -> Option<TypeId> {
-        let mut hash = FxHasher::default();
-        data.hash(&mut hash);
-        let hash = hash.finish();
+        let hash = hash_data(data);
 
         self.table
             .find(hash, |i| self.types[*i] == *data)
@@ -79,18 +130,10 @@ impl TypeStore {
     /// Returns the `TypeId` of the newly registered data, or the `TypeId` of
     /// an already registered equivalent type.
     pub fn register_type(&mut self, data: Cow<TypeData>) -> TypeId {
-        let mut hash = FxHasher::default();
-        data.hash(&mut hash);
-        let hash = hash.finish();
-
         let entry = self.table.entry(
-            hash,
+            hash_data(&data),
             |i| &self.types[*i] == data.as_ref(),
-            |i| {
-                let mut hash = FxHasher::default();
-                self.types[*i].hash(&mut hash);
-                hash.finish()
-            },
+            |i| hash_data(&self.types[*i]),
         );
         match entry {
             Entry::Occupied(entry) => TypeId::new(*entry.get()),
@@ -120,9 +163,7 @@ impl TypeStore {
     pub unsafe fn take_from_index_temporarily(&mut self, index: usize) -> TypeData {
         let data = std::mem::take(&mut self.types[index]);
 
-        let mut hash = FxHasher::default();
-        data.hash(&mut hash);
-        let hash = hash.finish();
+        let hash = hash_data(&data);
 
         if let Ok(occupied) = self.table.find_entry(hash, |i| self.types[*i] == data) {
             occupied.remove();
@@ -140,22 +181,91 @@ impl TypeStore {
     /// [`Self::take_from_index_temporarily()`] with the same index, before any
     /// lookups are performed.
     pub unsafe fn reinsert_temporarily_taken_data(&mut self, index: usize, data: TypeData) {
-        let mut hash = FxHasher::default();
-        data.hash(&mut hash);
-        let hash = hash.finish();
+        let entry = self.table.entry(
+            hash_data(&data),
+            |i| self.types[*i] == data,
+            |i| hash_data(&self.types[*i]),
+        );
+        if let Entry::Vacant(entry) = entry {
+            entry.insert(index);
+        }
 
         self.types[index] = data;
-
-        self.table.insert_unique(hash, index, |i| {
-            let mut hash = FxHasher::default();
-            self.types[*i].hash(&mut hash);
-            hash.finish()
-        });
     }
 }
 
 impl From<TypeStore> for Box<[TypeData]> {
     fn from(store: TypeStore) -> Self {
         store.types.into()
+    }
+}
+
+#[inline(always)]
+fn hash_data(data: &TypeData) -> u64 {
+    let mut hash = FxHasher::default();
+    data.hash(&mut hash);
+    hash.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deduplication() {
+        let store = TypeStore::from_types(vec![
+            TypeData::String,
+            TypeData::Number,
+            TypeData::String,
+            TypeData::Reference(TypeReference::Resolved(ResolvedTypeId::new(
+                TypeResolverLevel::Thin,
+                TypeId::new(2),
+            ))),
+        ]);
+        let expected = &[
+            TypeData::String,
+            TypeData::Number,
+            TypeData::Reference(TypeReference::Resolved(ResolvedTypeId::new(
+                TypeResolverLevel::Thin,
+                TypeId::new(0),
+            ))),
+        ];
+        assert_eq!(
+            store.deduplicated(TypeResolverLevel::Thin).0.as_slice(),
+            expected
+        );
+
+        let store = TypeStore::from_types(vec![
+            TypeData::String,
+            TypeData::Number,
+            TypeData::String,
+            TypeData::Reference(TypeReference::Resolved(ResolvedTypeId::new(
+                TypeResolverLevel::Thin,
+                TypeId::new(2),
+            ))),
+            TypeData::Reference(TypeReference::Resolved(ResolvedTypeId::new(
+                TypeResolverLevel::Thin,
+                TypeId::new(6),
+            ))),
+            TypeData::Number,
+            TypeData::Null,
+        ]);
+        let expected = &[
+            TypeData::String,
+            TypeData::Number,
+            TypeData::Reference(TypeReference::Resolved(ResolvedTypeId::new(
+                TypeResolverLevel::Thin,
+                TypeId::new(0),
+            ))),
+            TypeData::Reference(TypeReference::Resolved(ResolvedTypeId::new(
+                TypeResolverLevel::Thin,
+                TypeId::new(4),
+            ))),
+            TypeData::Null,
+        ];
+        assert_eq!(
+            store.deduplicated(TypeResolverLevel::Thin).0.as_slice(),
+            expected
+        );
     }
 }
