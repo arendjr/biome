@@ -6,9 +6,10 @@ use std::{
 use biome_rowan::Text;
 
 use crate::{
-    CallArgumentType, DestructureField, GLOBAL_UNKNOWN_ID, Literal, ResolvedTypeData,
-    ResolvedTypeMember, ResolverId, TypeData, TypeInstance, TypeMemberKind, TypeReference,
-    TypeResolver, TypeofCallExpression, TypeofExpression, TypeofStaticMemberExpression,
+    CallArgumentType, Class, DestructureField, Function, GLOBAL_UNKNOWN_ID, Interface,
+    Intersection, Literal, Namespace, Object, ResolvedTypeData, ResolvedTypeMember, ResolverId,
+    TypeData, TypeInstance, TypeMember, TypeMemberKind, TypeReference, TypeResolver,
+    TypeofCallExpression, TypeofExpression, TypeofStaticMemberExpression,
     globals::{
         GLOBAL_ARRAY_ID, GLOBAL_BIGINT_STRING_LITERAL_ID, GLOBAL_BOOLEAN_STRING_LITERAL_ID,
         GLOBAL_FUNCTION_STRING_LITERAL_ID, GLOBAL_NUMBER_STRING_LITERAL_ID,
@@ -119,6 +120,9 @@ fn flattened(mut ty: TypeData, resolver: &mut dyn TypeResolver, depth: usize) ->
                     None => return ty,
                 },
             },
+            TypeData::Intersection(intersection) => {
+                ty = flattened_intersection(intersection, resolver);
+            }
             TypeData::Reference(reference) => match reference {
                 TypeReference::Unknown => return TypeData::Unknown,
                 _ => match resolver.resolve_and_get(reference) {
@@ -589,6 +593,157 @@ fn flattened_function_call(
             .map(ResolvedTypeData::to_data)
             .map(|data| (false, data)),
         _ => None,
+    }
+}
+
+enum MergedType {
+    Any,
+    Class(Vec<TypeMember>),
+    Function(Box<Function>),
+    Interface(Vec<TypeMember>),
+    Namespace(Vec<TypeMember>),
+    Never,
+    Object(Vec<TypeMember>),
+    Primitive(TypeData),
+    Unknown,
+}
+
+impl MergedType {
+    fn from_type(ty: TypeData) -> Self {
+        match ty {
+            TypeData::AnyKeyword | TypeData::Conditional => Self::Any,
+            TypeData::BigInt
+            | TypeData::Boolean
+            | TypeData::Null
+            | TypeData::Number
+            | TypeData::String
+            | TypeData::Symbol
+            | TypeData::Undefined => Self::Primitive(ty),
+            TypeData::Class(class) => Self::Class(class.members.into_iter().collect()),
+            TypeData::Function(function) => Self::Function(function),
+            TypeData::Literal(literal) => match *literal {
+                Literal::BigInt(_)
+                | Literal::Boolean(_)
+                | Literal::Null
+                | Literal::Number(_)
+                | Literal::String(_)
+                | Literal::Template(_) => Self::Primitive(TypeData::Literal(literal)),
+                Literal::Object(object) => {
+                    Self::Object(object.into_members().into_iter().collect())
+                }
+                Literal::RegExp(_) => Self::Unknown, // TODO
+            },
+            TypeData::Interface(interface) => {
+                Self::Interface(interface.members.into_iter().collect())
+            }
+            TypeData::Namespace(namespace) => {
+                Self::Namespace(namespace.members.into_iter().collect())
+            }
+            TypeData::NeverKeyword => Self::Never,
+            _ => Self::Unknown,
+        }
+    }
+
+    fn as_primitive(&self) -> Option<&TypeData> {
+        match self {
+            Self::Primitive(primitive) => Some(primitive),
+            _ => None,
+        }
+    }
+
+    fn intersection_with(self, other: Self) -> Self {}
+
+    fn into_type(self) -> TypeData {
+        match self {
+            Self::Any => TypeData::AnyKeyword,
+            Self::Class(members) => TypeData::from(Class {
+                extends: None,
+                implements: [].into(),
+                members: members.into_iter().collect(),
+                name: None,
+                type_parameters: [].into(),
+            }),
+            Self::Function(function) => TypeData::Function(function),
+            Self::Interface(members) => TypeData::from(Interface {
+                extends: [].into(),
+                members: members.into_iter().collect(),
+                name: Text::Static("(merged)"),
+                type_parameters: [].into(),
+            }),
+            Self::Namespace(members) => TypeData::from(Namespace {
+                members: members.into_iter().collect(),
+                path: [].into(),
+            }),
+            Self::Never => TypeData::NeverKeyword,
+            Self::Object(members) => TypeData::from(Object {
+                members: members.into_iter().collect(),
+                prototype: None,
+            }),
+            Self::Primitive(primitive) => primitive.to_owned(),
+            Self::Unknown => TypeData::Unknown,
+        }
+    }
+
+    fn is_mergeable(&self) -> bool {
+        match self {
+            Self::Any | Self::Never | Self::Unknown => false,
+            _ => true,
+        }
+    }
+
+    fn union_with(self, other: Self) -> Self {}
+}
+
+fn flattened_intersection(
+    intersection: &Intersection,
+    resolver: &mut dyn TypeResolver,
+) -> TypeData {
+    match intersection.types() {
+        [] => TypeData::reference(GLOBAL_UNKNOWN_ID),
+        [ty] => resolver.resolve_and_get(ty).map_or(
+            TypeData::reference(GLOBAL_UNKNOWN_ID),
+            ResolvedTypeData::to_data,
+        ),
+        types => {
+            let merged_ty = resolver.resolve_and_get(&types[0]).map_or(
+                TypeData::reference(GLOBAL_UNKNOWN_ID),
+                ResolvedTypeData::to_data,
+            );
+            let mut merged_ty = MergedType::from_type(merged_ty);
+            let mut primitive = merged_ty.as_primitive().cloned();
+            for other in &types[1..] {
+                if !merged_ty.is_mergeable() {
+                    break;
+                }
+
+                let other_ty = resolver.resolve_and_get(other).map_or(
+                    TypeData::reference(GLOBAL_UNKNOWN_ID),
+                    ResolvedTypeData::to_data,
+                );
+                let other_ty = MergedType::from_type(other_ty);
+                if let Some(other_primitve) = other_ty.as_primitive() {
+                    if primitive.is_some() {
+                        return TypeData::NeverKeyword;
+                    }
+
+                    primitive = Some(other_primitve.clone());
+                } else {
+                    merged_ty = merged_ty.intersection_with(other_ty);
+                }
+            }
+
+            if let Some(primitive) = primitive {
+                let ty = resolver.register_and_resolve(merged_ty.into_type());
+                let primitive_ty = resolver.register_and_resolve(primitive);
+                resolver
+                    .register_and_get(TypeData::Intersection(Box::new(Intersection(
+                        [ty.into(), primitive_ty.into()].into(),
+                    ))))
+                    .clone()
+            } else {
+                merged_ty.into_type()
+            }
+        }
     }
 }
 

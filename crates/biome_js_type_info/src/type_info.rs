@@ -128,6 +128,11 @@ impl Type {
         }
     }
 
+    /// Returns whether this type is an interface.
+    pub fn is_interface(&self) -> bool {
+        matches!(self.as_raw_data(), Some(TypeData::Interface(_)))
+    }
+
     /// Returns whether this type is a number or a literal number.
     pub fn is_number(&self) -> bool {
         self.id == GLOBAL_NUMBER_ID
@@ -315,6 +320,12 @@ pub enum TypeData {
     VoidKeyword,
 }
 
+impl From<Class> for TypeData {
+    fn from(value: Class) -> Self {
+        Self::Class(Box::new(value))
+    }
+}
+
 impl From<Constructor> for TypeData {
     fn from(value: Constructor) -> Self {
         Self::Constructor(Box::new(value))
@@ -342,6 +353,12 @@ impl From<Interface> for TypeData {
 impl From<Literal> for TypeData {
     fn from(value: Literal) -> Self {
         Self::Literal(Box::new(value))
+    }
+}
+
+impl From<Object> for TypeData {
+    fn from(value: Object) -> Self {
+        Self::Object(Box::new(value))
     }
 }
 
@@ -449,6 +466,20 @@ impl TypeData {
             Self::Reference(TypeReference::Unknown) | Self::Unknown => false,
             _ => true,
         }
+    }
+
+    /// Returns whether the given type is a primitive type.
+    pub fn is_primitive(&self) -> bool {
+        matches!(
+            self,
+            Self::BigInt
+                | Self::Boolean
+                | Self::Null
+                | Self::Number
+                | Self::String
+                | Self::Symbol
+                | Self::Undefined
+        )
     }
 
     pub fn reference(reference: impl Into<TypeReference>) -> Self {
@@ -695,6 +726,10 @@ pub struct Object {
 pub struct ObjectLiteral(pub(super) Box<[TypeMember]>);
 
 impl ObjectLiteral {
+    pub fn into_members(self) -> Box<[TypeMember]> {
+        self.0
+    }
+
     pub fn members(&self) -> &[TypeMember] {
         &self.0
     }
