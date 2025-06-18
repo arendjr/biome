@@ -101,6 +101,9 @@ pub enum TaskCommand {
     /// Transforms ungram files into AST
     #[bpaf(command)]
     Grammar(Vec<String>),
+    /// Generates global type definitions for type inference.
+    #[bpaf(command, long("global-types"))]
+    GlobalTypes,
     /// Generates unicode table inside lexer
     #[bpaf(command)]
     Unicode,

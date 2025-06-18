@@ -2,6 +2,8 @@
 mod generate_bindings;
 #[cfg(feature = "configuration")]
 mod generate_configuration;
+#[cfg(feature = "global_types")]
+mod generate_global_types;
 #[cfg(feature = "license")]
 mod generate_license;
 #[cfg(feature = "configuration")]
@@ -15,6 +17,8 @@ use xtask::{Result, project_root, pushd};
 use crate::generate_bindings::generate_workspace_bindings;
 #[cfg(feature = "configuration")]
 use crate::generate_configuration::generate_rules_configuration;
+#[cfg(feature = "global_types")]
+use crate::generate_global_types::generate_global_types;
 #[cfg(feature = "license")]
 use crate::generate_license::generate_license;
 #[cfg(feature = "configuration")]
@@ -62,6 +66,10 @@ fn main() -> Result<()> {
         }
         TaskCommand::Grammar(language_list) => {
             generate_ast(Overwrite, language_list)?;
+        }
+        TaskCommand::GlobalTypes => {
+            #[cfg(feature = "global_types")]
+            generate_global_types()?;
         }
         TaskCommand::Unicode => {
             generate_tables()?;

@@ -31,6 +31,10 @@ gen-bindings:
   cargo codegen-schema
   cargo run -p xtask_codegen --features schema -- bindings
 
+# Generates TypeScript types and JSON schema of the configuration
+gen-global-types:
+  cargo run -p xtask_codegen --features global_types -- global-types
+
 # Generates code generated files for the linter
 gen-analyzer:
   cargo run -p xtask_codegen -- analyzer
