@@ -385,3 +385,54 @@ fn should_not_lint_when_root_is_disabled_but_nested_is_enabled() {
         result,
     ));
 }
+
+#[test]
+fn should_find_root_when_run_from_nested_dir() {
+    let mut console = BufferConsole::default();
+    let mut fs = TemporaryFs::new("should_find_root_when_run_from_nested_dir");
+
+    fs.create_file(
+        "biome.jsonc",
+        r#"{
+    "linter": {
+        "rules": {
+            "correctness": { "noUnusedVariables": "off" },
+            "suspicious": { "noDebugger": "off" }
+        }
+    }
+}"#,
+    );
+
+    fs.create_file(
+        "packages/lib/biome.jsonc",
+        r#"{
+    "extends": "//",
+    "linter": {
+        "rules": {
+            "correctness": { "noUnusedVariables": "error" }
+        }
+    }
+}"#,
+    );
+
+    fs.create_file("file.js", "let a; debugger");
+
+    fs.create_file("packages/lib/file.js", "let a; debugger");
+
+    fs.append_to_working_directory("packages/lib");
+    let result = run_cli_with_dyn_fs(
+        Box::new(fs.create_os()),
+        &mut console,
+        Args::from(["lint", fs.cli_path()].as_slice()),
+    );
+
+    assert!(result.is_err(), "run_cli returned {result:?}");
+
+    assert_cli_snapshot(SnapshotPayload::new(
+        module_path!(),
+        "should_find_root_when_run_from_nested_dir",
+        fs.create_mem(),
+        console,
+        result,
+    ));
+}
