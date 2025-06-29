@@ -1,0 +1,53 @@
+---
+source: crates/biome_cli/tests/snap_test.rs
+expression: redactor(content)
+---
+## `biome.jsonc`
+
+```json
+{
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "linter": {
+    "rules": {
+      "correctness": { "noUnusedVariables": "off" },
+      "suspicious": { "noDebugger": "off" }
+    }
+  }
+}
+```
+
+## `packages/lib/biome.jsonc`
+
+```json
+{
+  "extends": "//",
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "rules": {
+      "correctness": { "noUnusedVariables": "error" }
+    }
+  }
+}
+```
+
+# Input messages
+
+```block
+let a = "a"; debugger
+```
+
+# Emitted Messages
+
+```block
+const _a = 'a';
+debugger;
+
+```

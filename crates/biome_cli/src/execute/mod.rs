@@ -96,8 +96,8 @@ pub enum TraversalMode {
     Check {
         /// The type of fixes that should be applied when analyzing a file.
         ///
-        /// It's [None] if the `check` command is called without `--apply` or `--apply-suggested`
-        /// arguments.
+        /// It's [None] if the `check` command is called without `--write`
+        /// argument.
         fix_file_mode: Option<FixFileMode>,
         /// An optional tuple.
         /// 1. The virtual path to the file
@@ -116,8 +116,8 @@ pub enum TraversalMode {
     Lint {
         /// The type of fixes that should be applied when analyzing a file.
         ///
-        /// It's [None] if the `lint` command is called without `--apply` or `--apply-suggested`
-        /// arguments.
+        /// It's [None] if the `lint` command is called without `--write`
+        /// argument.
         fix_file_mode: Option<FixFileMode>,
         /// An optional tuple.
         /// 1. The virtual path to the file

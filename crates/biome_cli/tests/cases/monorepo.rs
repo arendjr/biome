@@ -582,3 +582,67 @@ fn should_find_settings_when_targeting_parent_of_nested_dir() {
         result,
     ));
 }
+
+#[test]
+fn should_apply_settings_from_nested_config_with_stdin_file_path() {
+    let mut fs = TemporaryFs::new("should_apply_settings_from_nested_config_with_stdin_file_path");
+
+    fs.create_file(
+        "biome.jsonc",
+        r#"{
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double"
+        }
+    },
+    "linter": {
+        "rules": {
+            "correctness": { "noUnusedVariables": "off" },
+            "suspicious": { "noDebugger": "off" }
+        }
+    }
+}"#,
+    );
+
+    fs.create_file(
+        "packages/lib/biome.jsonc",
+        r#"{
+    "extends": "//",
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single"
+        }
+    },
+    "linter": {
+        "rules": {
+            "correctness": { "noUnusedVariables": "error" }
+        }
+    }
+}"#,
+    );
+
+    let mut console = BufferConsole::default();
+    console.in_buffer.push("let a = \"a\"; debugger".into());
+
+    let result = run_cli_with_dyn_fs(
+        Box::new(fs.create_os()),
+        &mut console,
+        Args::from(
+            [
+                "check",
+                &format!("--stdin-file-path={}/packages/lib/file.js", fs.cli_path()),
+                "--write",
+                "--unsafe",
+            ]
+            .as_slice(),
+        ),
+    );
+
+    assert_cli_snapshot(SnapshotPayload::new(
+        module_path!(),
+        "should_apply_settings_from_nested_config_with_stdin_file_path",
+        fs.create_mem(),
+        console,
+        result,
+    ));
+}

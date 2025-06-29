@@ -1402,6 +1402,17 @@ impl<'app, W: Workspace + ?Sized> FileGuard<'app, W> {
         })
     }
 
+    pub fn file_features(
+        &self,
+        features: FeatureName,
+    ) -> Result<FileFeaturesResult, WorkspaceError> {
+        self.workspace.file_features(SupportsFeatureParams {
+            project_key: self.project_key,
+            path: self.path.clone(),
+            features,
+        })
+    }
+
     pub fn get_syntax_tree(&self) -> Result<GetSyntaxTreeResult, WorkspaceError> {
         self.workspace.get_syntax_tree(GetSyntaxTreeParams {
             project_key: self.project_key,
