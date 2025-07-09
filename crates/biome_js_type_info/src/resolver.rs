@@ -7,8 +7,7 @@ use biome_rowan::Text;
 use crate::{
     GLOBAL_UNKNOWN_ID, NUM_PREDEFINED_TYPES, ScopeId, TypeData, TypeId, TypeImportQualifier,
     TypeInstance, TypeMember, TypeMemberKind, TypeReference, TypeReferenceQualifier, TypeofValue,
-    Union,
-    globals::{GLOBAL_UNDEFINED_ID, global_type_name},
+    globals::global_type_name,
 };
 
 const NUM_MODULE_ID_BITS: i32 = 30;
@@ -705,10 +704,7 @@ pub trait TypeResolver {
     // #region Registration utilities
 
     fn optional(&mut self, ty: TypeReference) -> TypeId {
-        self.register_type(Cow::Owned(TypeData::Union(Box::new(Union(Box::new([
-            ty,
-            GLOBAL_UNDEFINED_ID.into(),
-        ]))))))
+        self.register_type(Cow::Owned(TypeData::optional(ty)))
     }
 
     // #endregion

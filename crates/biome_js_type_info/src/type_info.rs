@@ -20,7 +20,8 @@ use biome_resolver::ResolvedPath;
 use biome_rowan::Text;
 
 use crate::globals::{
-    GLOBAL_ARRAY_ID, GLOBAL_NUMBER_ID, GLOBAL_PROMISE_ID, GLOBAL_STRING_ID, GLOBAL_UNKNOWN_ID,
+    GLOBAL_ARRAY_ID, GLOBAL_NUMBER_ID, GLOBAL_PROMISE_ID, GLOBAL_STRING_ID, GLOBAL_UNDEFINED_ID,
+    GLOBAL_UNKNOWN_ID,
 };
 use crate::type_info::literal::{BooleanLiteral, NumberLiteral, StringLiteral};
 use crate::{
@@ -95,9 +96,19 @@ impl Type {
     /// Returns `true` if this type represents a **union type** that has a
     /// variant for which the given `predicate` returns `true`.
     ///
+    /// If the type represents an optional type, it returns `true` if the
+    /// `predicate` returns `true` for either the reference or the `undefined`
+    /// variant.
+    ///
     /// Returns `false` otherwise.
     pub fn has_variant(&self, predicate: impl Fn(Self) -> bool) -> bool {
         match self.as_raw_data() {
+            Some(TypeData::Optional(reference)) => {
+                self.resolve(reference).is_some_and(&predicate)
+                    || self
+                        .resolve(&GLOBAL_UNDEFINED_ID.into())
+                        .is_some_and(predicate)
+            }
             Some(TypeData::Union(union)) => union
                 .types()
                 .iter()
@@ -287,6 +298,10 @@ pub enum TypeData {
     // Compound types
     Intersection(Box<Intersection>),
     Union(Box<Union>),
+
+    /// Optimised representation of a union with two references, where one is
+    /// `undefined`.
+    Optional(Box<TypeReference>),
 
     /// Type derived from another through a built-in operator.
     TypeOperator(Box<TypeOperatorType>),
@@ -522,6 +537,10 @@ impl TypeData {
         Self::Reference(TypeReference::Resolved(GLOBAL_NUMBER_ID))
     }
 
+    pub fn optional(reference: impl Into<TypeReference>) -> Self {
+        Self::Optional(Box::new(reference.into()))
+    }
+
     pub fn reference(reference: impl Into<TypeReference>) -> Self {
         Self::Reference(reference.into())
     }
@@ -571,6 +590,7 @@ impl TypeData {
             | Self::Interface(_)
             | Self::Intersection(_)
             | Self::Object(_)
+            | Self::Optional(_)
             | Self::Tuple(_)
             | Self::Union(_) => instance.type_parameters.is_empty(),
             Self::Class(_)
@@ -599,6 +619,11 @@ impl TypeData {
             Self::Interface(interface) => Some(&interface.type_parameters),
             _ => None,
         }
+    }
+
+    #[inline]
+    pub fn undefined() -> Self {
+        Self::Reference(TypeReference::Resolved(GLOBAL_UNDEFINED_ID))
     }
 
     #[inline]
@@ -1296,6 +1321,14 @@ impl TypeReference {
             Self::Qualifier(_) => true,
             Self::Resolved(resolved_id) => *resolved_id != GLOBAL_UNKNOWN_ID,
             Self::Unknown => false,
+        }
+    }
+
+    #[inline]
+    pub fn is_undefined(&self) -> bool {
+        match self {
+            Self::Resolved(resolved_id) => *resolved_id == GLOBAL_UNDEFINED_ID,
+            _ => false,
         }
     }
 

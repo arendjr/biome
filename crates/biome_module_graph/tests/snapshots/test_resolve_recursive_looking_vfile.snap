@@ -388,15 +388,15 @@ Module TypeId(23) => T = unknown reference
 
 Module TypeId(24) => instanceof Module(0) TypeId(21)<Module(0) TypeId(23)>
 
-Module TypeId(25) => Module(0) TypeId(44) | undefined
+Module TypeId(25) => Module(0) TypeId(44)?
 
-Module TypeId(26) => string | undefined
+Module TypeId(26) => string?
 
 Module TypeId(27) => any
 
-Module TypeId(28) => Module(0) TypeId(27) | undefined
+Module TypeId(28) => Module(0) TypeId(27)?
 
-Module TypeId(29) => Module(0) TypeId(44) | undefined
+Module TypeId(29) => Module(0) TypeId(44)?
 
 Module TypeId(30) => interface "VFileOptions" {
   extends: []

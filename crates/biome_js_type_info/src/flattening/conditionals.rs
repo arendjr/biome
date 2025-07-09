@@ -94,6 +94,9 @@ impl ConditionalType {
                             (Some(c1), Some(c2), Some(c3)) => c1.merged_with(c2).merged_with(c3),
                         }
                     }
+                    TypeData::Optional(reference) => {
+                        derive_from_reference(reference).merged_with(ConditionalType::Nullish)
+                    }
                     TypeData::Reference(reference) => derive_from_reference(reference),
                     TypeData::Union(union) => {
                         let mut conditional = ConditionalType::Unknown;
@@ -148,6 +151,7 @@ impl ConditionalType {
             TypeData::InstanceOf(_)
             | TypeData::Intersection(_)
             | TypeData::MergedReference(_)
+            | TypeData::Optional(_)
             | TypeData::Reference(_)
             | TypeData::Union(_) => {
                 // IMPORTANT: If you add a variant to this branch, make sure to
@@ -296,13 +300,18 @@ pub fn reference_to_non_nullish_subset_of(
     ty: &TypeData,
     resolver: &mut dyn TypeResolver,
 ) -> Option<TypeReference> {
-    let filter = |ty: &TypeData| {
-        if ConditionalType::from_data_shallow(ty)
-            .is_none_or(|conditional| !conditional.is_nullish())
-        {
-            FilteredData::Retained
-        } else {
-            FilteredData::Stripped
+    let filter = |ty: &TypeData| match ty {
+        TypeData::Optional(reference) => {
+            FilteredData::Mapped(TypeData::Reference(reference.as_ref().clone()))
+        }
+        other => {
+            if ConditionalType::from_data_shallow(other)
+                .is_none_or(|conditional| !conditional.is_nullish())
+            {
+                FilteredData::Retained
+            } else {
+                FilteredData::Stripped
+            }
         }
     };
 
@@ -320,6 +329,9 @@ pub fn reference_to_truthy_subset_of(
 ) -> Option<TypeReference> {
     let filter = |ty: &TypeData| match ty {
         TypeData::Boolean => FilteredData::Mapped(Literal::Boolean(true.into()).into()),
+        TypeData::Optional(reference) => {
+            FilteredData::Mapped(TypeData::Reference(reference.as_ref().clone()))
+        }
         other => {
             if ConditionalType::from_data_shallow(other)
                 .is_none_or(|conditional| !conditional.is_falsy())
@@ -352,7 +364,7 @@ fn to_filtered_value(
         return None;
     }
 
-    let mut reference_to_non_nullish_value = |reference: &TypeReference| -> Option<TypeData> {
+    let mut reference_to_filtered_value = |reference: &TypeReference| -> Option<TypeData> {
         resolver
             .resolve_and_get(reference)
             .map(ResolvedTypeData::to_data)
@@ -402,7 +414,8 @@ fn to_filtered_value(
                     })),
                 }
             }
-            TypeData::Reference(reference) => reference_to_non_nullish_value(reference),
+            TypeData::Optional(reference) => reference_to_filtered_value(reference),
+            TypeData::Reference(reference) => reference_to_filtered_value(reference),
             TypeData::Union(union) => {
                 let types = union
                     .types()

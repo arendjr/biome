@@ -11,7 +11,7 @@ use crate::{
     BindingId, Class, Interface, Intersection, Module, Namespace, Object, Resolvable,
     ResolvedTypeData, ResolvedTypeId, ResolvedTypeMember, ResolverId, Type, TypeData, TypeInstance,
     TypeMember, TypeReference, TypeResolver, Union,
-    globals::{GLOBAL_ARRAY_ID, GLOBAL_PROMISE_ID, GLOBAL_TYPE_MEMBERS},
+    globals::{GLOBAL_ARRAY_ID, GLOBAL_PROMISE_ID, GLOBAL_TYPE_MEMBERS, GLOBAL_UNDEFINED_ID},
 };
 
 impl<'a> ResolvedTypeData<'a> {
@@ -169,8 +169,7 @@ impl TypeData {
                 if resolved.is_instance_of(resolver, GLOBAL_ARRAY_ID) {
                     resolved
                         .get_type_parameter(0)
-                        .map(|reference| reference.into_owned())
-                        .map(|reference| resolver.optional(reference))
+                        .map(|reference| resolver.optional(reference.into_owned()))
                         .map(|id| {
                             ResolvedTypeData::from((
                                 ResolvedTypeId::new(resolver.level(), id),
@@ -254,13 +253,17 @@ impl TypeData {
     /// References are automatically deduplicated. If only a single type
     /// remains, an instance of `Self::Reference` is returned instead of
     /// `Self::Union`.
+    ///
+    /// Unions with `undefined` and only one other type are turned into
+    /// `Self::Optional`.
     pub fn union_of(resolver: &dyn TypeResolver, types: Box<[TypeReference]>) -> Self {
         // We use a hash table separately of a vector to quickly check for
         // duplicates, without messing with the original order.
         let mut table: HashTable<usize> = HashTable::with_capacity(types.len());
         let mut vec = Vec::with_capacity(types.len());
+        let mut is_optional = false;
         for ty in types {
-            if let Some(resolved) = resolver.resolve_and_get(&ty) {
+            let ty = if let Some(resolved) = resolver.resolve_and_get(&ty) {
                 match resolved.as_raw_data() {
                     Self::AnyKeyword => {
                         // `any` poisons the entire union.
@@ -270,9 +273,18 @@ impl TypeData {
                         // No point in adding `never` to the union.
                         continue;
                     }
+                    Self::Optional(reference) => {
+                        is_optional = true;
+                        resolved.apply_module_id_to_reference(reference)
+                    }
                     Self::Union(union) => {
                         // Flatten existing union into the new one:
                         for ty in union.types() {
+                            if ty.is_undefined() {
+                                is_optional = true;
+                                continue;
+                            }
+
                             let ty = resolved.apply_module_id_to_reference(ty);
                             let entry = table.entry(
                                 hash_reference(&ty),
@@ -285,26 +297,42 @@ impl TypeData {
                                 entry.insert(index);
                             }
                         }
+                        continue;
                     }
-                    _ => {}
+                    _ => Cow::Owned(ty),
                 }
+            } else {
+                Cow::Owned(ty)
+            };
+
+            if ty.is_undefined() {
+                is_optional = true;
+                continue;
             }
 
             let entry = table.entry(
                 hash_reference(&ty),
-                |i| vec[*i] == ty,
+                |i| vec[*i] == *ty,
                 |i| hash_reference(&vec[*i]),
             );
             if let Entry::Vacant(entry) = entry {
                 let index = vec.len();
-                vec.push(ty);
+                vec.push(ty.into_owned());
                 entry.insert(index);
             }
         }
 
         match vec.len().cmp(&1) {
-            Ordering::Greater => Self::Union(Box::new(Union(vec.into()))),
+            Ordering::Greater => {
+                if is_optional {
+                    vec.push(GLOBAL_UNDEFINED_ID.into());
+                }
+
+                Self::Union(Box::new(Union(vec.into())))
+            }
+            Ordering::Equal if is_optional => Self::optional(vec.remove(0)),
             Ordering::Equal => Self::reference(vec.remove(0)),
+            Ordering::Less if is_optional => Self::undefined(),
             Ordering::Less => Self::NeverKeyword,
         }
     }

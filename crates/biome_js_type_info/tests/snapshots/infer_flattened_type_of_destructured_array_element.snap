@@ -12,7 +12,7 @@ const [a]: Array<string> = [];
 ## Result
 
 ```
-a => string | undefined
+a => string?
 
 ```
 
@@ -21,9 +21,9 @@ a => string | undefined
 ```
 Global TypeId(0) => instanceof Array<string>
 
-Global TypeId(1) => string | undefined
+Global TypeId(1) => string?
 
 Global TypeId(2) => instanceof Array<string>
 
-Global TypeId(3) => string | undefined
+Global TypeId(3) => string?
 ```

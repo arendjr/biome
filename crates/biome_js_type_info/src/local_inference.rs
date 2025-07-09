@@ -763,7 +763,7 @@ impl TypeData {
                 _ => Self::unknown(),
             },
             AnyTsType::TsTypeofType(ty) => Self::from_ts_typeof_type(resolver, scope_id, ty),
-            AnyTsType::TsUndefinedType(_) => Self::Undefined,
+            AnyTsType::TsUndefinedType(_) => Self::undefined(),
             AnyTsType::TsUnionType(ty) => {
                 let types = ty
                     .types()
@@ -1103,7 +1103,7 @@ impl TypeData {
             Self::Reference(GLOBAL_UNKNOWN_ID.into()),
             |name| match name.text() {
                 "globalThis" => Self::reference(GLOBAL_GLOBAL_ID),
-                "undefined" => Self::Undefined,
+                "undefined" => Self::undefined(),
                 _ => Self::reference(TypeReference::from_name(scope_id, name)),
             },
         )

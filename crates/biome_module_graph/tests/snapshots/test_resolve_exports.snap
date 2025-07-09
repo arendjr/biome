@@ -181,7 +181,7 @@ BindingId(8) => JsBindingData {
 
 BindingId(11) => JsBindingData {
   Name: Component,
-  Type: Module(0) TypeId(17),
+  Type: Module(0) TypeId(16),
   JSDoc comment: JsDoc(
     @public
     @returns {JSX.Element}
@@ -200,7 +200,7 @@ Module TypeId(0) => Object {
 
 Module TypeId(1) => value: 1
 
-Module TypeId(2) => Module(0) TypeId(15)
+Module TypeId(2) => Module(0) TypeId(14)
 
 Module TypeId(3) => Object {
   prototype: No prototype
@@ -242,7 +242,7 @@ Module TypeId(6) => Tuple(
 
 Module TypeId(7) => boolean
 
-Module TypeId(8) => Module(0) TypeId(7) | Module(0) TypeId(14)
+Module TypeId(8) => Module(0) TypeId(7)?
 
 Module TypeId(9) => void
 
@@ -272,9 +272,7 @@ Module TypeId(13) => async Function "baz" {
   returns: Module(0) TypeId(12)
 }
 
-Module TypeId(14) => undefined
-
-Module TypeId(15) => sync Function "getObject" {
+Module TypeId(14) => sync Function "getObject" {
   accepts: {
     params: []
     type_args: []
@@ -282,19 +280,19 @@ Module TypeId(15) => sync Function "getObject" {
   returns: Module(0) TypeId(3)
 }
 
-Module TypeId(16) => unknown
+Module TypeId(15) => unknown
 
-Module TypeId(17) => sync Function "Component" {
+Module TypeId(16) => sync Function "Component" {
   accepts: {
     params: []
     type_args: []
   }
-  returns: Module(0) TypeId(16)
+  returns: Module(0) TypeId(15)
 }
 
-Module TypeId(18) => Module(0) TypeId(7)
+Module TypeId(17) => Module(0) TypeId(7)
 
-Module TypeId(19) => Module(0) TypeId(8)
+Module TypeId(18) => Module(0) TypeId(8)
 ```
 
 # `/src/renamed-reexports.ts`

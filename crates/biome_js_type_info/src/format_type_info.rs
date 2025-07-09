@@ -111,6 +111,7 @@ impl Format<FormatTypeContext> for TypeData {
             Self::Generic(generic) => write!(f, [&generic.as_ref()]),
             Self::Intersection(ty) => write!(f, [FmtVerbatim(&ty.as_ref())]),
             Self::Union(union) => write!(f, [&union.as_ref()]),
+            Self::Optional(reference) => write!(f, [&reference.as_ref(), text("?")]),
             Self::TypeOperator(ty) => write!(f, [FmtVerbatim(&ty.as_ref())]),
             Self::Literal(ty) => write!(f, [&ty.as_ref()]),
             Self::InstanceOf(ty) => write!(
