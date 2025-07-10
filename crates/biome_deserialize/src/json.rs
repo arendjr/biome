@@ -7,6 +7,7 @@ use biome_diagnostics::{DiagnosticExt, Error};
 use biome_json_parser::{JsonParserOptions, parse_json};
 use biome_json_syntax::{AnyJsonValue, JsonMemberName, JsonRoot, T};
 use biome_rowan::{AstNode, AstSeparatedList, Text, TokenText};
+use compact_str::CompactString;
 
 /// It attempts to parse and deserialize a source file in JSON. Diagnostics from the parse phase
 /// are consumed and joined with the diagnostics emitted during the deserialization.
@@ -272,7 +273,7 @@ pub fn unescape_json_string(text: TokenText) -> Text {
     match text.find('\\') {
         Some(index) => {
             let mut state = State::Escaped;
-            let mut string = text[..index].to_string();
+            let mut string = CompactString::new(&text[..index]);
             string.reserve(usize::from(text.len()) - string.len());
             for c in text[(index + 1)..].chars() {
                 match state {

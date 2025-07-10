@@ -20,6 +20,7 @@ use biome_js_syntax::{
     TsTypeParameter, TsTypeParameters, TsTypeofType, inner_string_text, unescape_js_string,
 };
 use biome_rowan::{AstNode, SyntaxResult, Text, TokenText};
+use compact_str::format_compact;
 
 use crate::globals::{
     GLOBAL_GLOBAL_ID, GLOBAL_INSTANCEOF_PROMISE_ID, GLOBAL_NUMBER_ID, GLOBAL_STRING_ID,
@@ -620,7 +621,7 @@ impl TypeData {
             ),
             AnyTsType::TsBigintLiteralType(ty) => match (ty.minus_token(), ty.literal_token()) {
                 (Some(minus_token), Ok(literal_token)) => Self::Literal(Box::new(Literal::BigInt(
-                    Text::Owned(format!("{minus_token}{literal_token}")),
+                    Text::Owned(format_compact!("{minus_token}{literal_token}")),
                 ))),
                 (None, Ok(literal_token)) => Self::Literal(Box::new(Literal::BigInt(
                     literal_token.token_text_trimmed().into(),
@@ -730,9 +731,9 @@ impl TypeData {
             },
             AnyTsType::TsStringType(_) => Self::reference(GLOBAL_STRING_ID),
             AnyTsType::TsSymbolType(_) => Self::Symbol,
-            AnyTsType::TsTemplateLiteralType(ty) => {
-                Self::Literal(Box::new(Literal::Template(Text::Owned(ty.to_string()))))
-            }
+            AnyTsType::TsTemplateLiteralType(ty) => Self::Literal(Box::new(Literal::Template(
+                Text::Owned(format_compact!("{ty}")),
+            ))),
             AnyTsType::TsThisType(_) => Self::ThisKeyword,
             AnyTsType::TsTupleType(ty) => {
                 let elements: SyntaxResult<Box<_>> = ty
@@ -1318,7 +1319,7 @@ impl TypeData {
 
     pub fn promise_of(scope_id: ScopeId, ty: TypeReference) -> Self {
         Self::instance_of(TypeReference::from(
-            TypeReferenceQualifier::from_path(scope_id, [Text::Static("Promise")])
+            TypeReferenceQualifier::from_path(scope_id, [Text::const_new("Promise")])
                 .with_type_parameters([ty]),
         ))
     }
@@ -1445,7 +1446,7 @@ impl FunctionParameter {
                 })
             }
             AnyJsParameter::TsThisParameter(param) => Self::Named(NamedFunctionParameter {
-                name: Text::Static("this"),
+                name: Text::const_new("this"),
                 ty: param
                     .type_annotation()
                     .and_then(|annotation| annotation.ty().ok())
@@ -1612,7 +1613,9 @@ impl ReturnType {
                             AnyTsTypePredicateParameterName::JsReferenceIdentifier(identifier) => {
                                 text_from_token(identifier.value_token())?
                             }
-                            AnyTsTypePredicateParameterName::TsThisType(_) => Text::Static("text"),
+                            AnyTsTypePredicateParameterName::TsThisType(_) => {
+                                Text::const_new("text")
+                            }
                         },
                         ty: ty
                             .predicate()
@@ -1629,7 +1632,9 @@ impl ReturnType {
                             AnyTsTypePredicateParameterName::JsReferenceIdentifier(identifier) => {
                                 text_from_token(identifier.value_token())?
                             }
-                            AnyTsTypePredicateParameterName::TsThisType(_) => Text::Static("text"),
+                            AnyTsTypePredicateParameterName::TsThisType(_) => {
+                                Text::const_new("text")
+                            }
                         },
                         ty: ty
                             .ty()
@@ -2386,14 +2391,14 @@ fn text_from_any_js_name(name: AnyJsName) -> Option<Text> {
         AnyJsName::JsPrivateName(name) => name
             .value_token()
             .ok()
-            .map(|token| Text::Owned(format!("#{}", token.token_text_trimmed()))),
+            .map(|token| Text::Owned(format_compact!("#{}", token.token_text_trimmed()))),
     }
 }
 
 #[inline]
 fn text_from_class_member_name(name: ClassMemberName) -> Text {
     match name {
-        ClassMemberName::Private(name) => Text::Owned(format!("#{name}")),
+        ClassMemberName::Private(name) => Text::Owned(format_compact!("#{name}")),
         ClassMemberName::Public(name) => Text::Borrowed(name),
     }
 }

@@ -2,6 +2,8 @@ use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 
+use compact_str::CompactString;
+
 use crate::TokenText;
 
 /// Type that allows deserializing a string without heap-allocation when possible.
@@ -10,8 +12,7 @@ use crate::TokenText;
 #[derive(Clone, Debug)]
 pub enum Text {
     Borrowed(TokenText),
-    Owned(String),
-    Static(&'static str),
+    Owned(CompactString),
 }
 
 impl Borrow<str> for Text {
@@ -22,7 +23,7 @@ impl Borrow<str> for Text {
 
 impl Default for Text {
     fn default() -> Self {
-        Self::Owned(String::new())
+        Self::Owned(CompactString::default())
     }
 }
 
@@ -49,7 +50,7 @@ impl From<TokenText> for Text {
 
 impl From<&'static str> for Text {
     fn from(string: &'static str) -> Self {
-        Self::Static(string)
+        Self::Owned(CompactString::const_new(string))
     }
 }
 
@@ -87,8 +88,7 @@ impl From<Text> for String {
     fn from(value: Text) -> Self {
         match value {
             Text::Borrowed(token_text) => token_text.to_string(),
-            Text::Owned(string) => string,
-            Text::Static(string) => string.to_string(),
+            Text::Owned(string) => string.to_string(),
         }
     }
 }
@@ -100,11 +100,29 @@ impl From<Text> for Box<str> {
 }
 
 impl Text {
+    pub const fn const_new(text: &'static str) -> Self {
+        Self::Owned(CompactString::const_new(text))
+    }
+
     pub fn text(&self) -> &str {
         match self {
             Self::Borrowed(token_text) => token_text.text(),
             Self::Owned(string) => string,
-            Self::Static(string) => string,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_type_sizes() {
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(
+            std::mem::size_of::<Text>(),
+            24,
+            "`Text` should not be bigger than 24 bytes"
+        );
     }
 }

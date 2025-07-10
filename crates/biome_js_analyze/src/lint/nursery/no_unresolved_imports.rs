@@ -247,7 +247,7 @@ fn get_unresolved_imports_from_module_source(
     let results = match node.syntax().parent().and_then(AnyJsImportClause::cast) {
         Some(AnyJsImportClause::JsImportCombinedClause(node)) => {
             let range = node.default_specifier()?.range();
-            (!has_exported_symbol(&Text::Static("default"), options))
+            (!has_exported_symbol(&Text::const_new("default"), options))
                 .then(|| NoUnresolvedImportsState::UnresolvedSymbol {
                     range,
                     specifier: options.specifier.as_ref().into(),
@@ -280,7 +280,7 @@ fn get_unresolved_imports_from_module_source(
         }
         Some(AnyJsImportClause::JsImportDefaultClause(node)) => {
             let range = node.default_specifier()?.range();
-            (!has_exported_symbol(&Text::Static("default"), options))
+            (!has_exported_symbol(&Text::const_new("default"), options))
                 .then(|| NoUnresolvedImportsState::UnresolvedSymbol {
                     range,
                     specifier: options.specifier.as_ref().into(),

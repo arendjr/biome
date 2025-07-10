@@ -86,12 +86,6 @@ impl Format<FormatTypeContext> for Exports {
                         ),]
                     )
                 }
-                Text::Static(t) => {
-                    write!(
-                        f,
-                        [dynamic_text(&std::format!("{t:?}"), TextSize::default()),]
-                    )
-                }
             });
             let arrow = format_with(|f| write!(f, [&format_args![space(), text("=>"), space()]]));
 
@@ -143,12 +137,6 @@ impl Format<FormatTypeContext> for Imports {
                             &std::format!("{:?}", t.as_str()),
                             TextSize::default()
                         )]
-                    )
-                }
-                Text::Static(t) => {
-                    write!(
-                        f,
-                        [dynamic_text(&std::format!("{t:?}"), TextSize::default()),]
                     )
                 }
             });

@@ -23,6 +23,7 @@ use biome_deserialize::{
 use biome_deserialize_macros::Deserializable;
 use biome_json_syntax::{AnyJsonValue, JsonArrayValue, JsonObjectValue, JsonStringValue};
 use biome_rowan::TokenText;
+use compact_str::CompactString;
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
@@ -253,7 +254,7 @@ impl Borrow<str> for JsonString {
 
 impl From<&str> for JsonString {
     fn from(value: &str) -> Self {
-        Self(Text::Owned(value.to_string()))
+        Self(Text::Owned(CompactString::new(value)))
     }
 }
 
@@ -261,14 +262,8 @@ impl From<JsonStringValue> for JsonString {
     fn from(value: JsonStringValue) -> Self {
         match value.inner_string_text() {
             Ok(text) => text.into(),
-            Err(_) => Self(Text::Owned(String::new())),
+            Err(_) => Self(Text::Owned(CompactString::default())),
         }
-    }
-}
-
-impl From<String> for JsonString {
-    fn from(value: String) -> Self {
-        Self(Text::Owned(value))
     }
 }
 
@@ -277,7 +272,6 @@ impl From<Text> for JsonString {
         match text {
             Text::Borrowed(token_text) => token_text.into(),
             Text::Owned(string) => Self(Text::Owned(string)),
-            Text::Static(string) => Self(Text::Static(string)),
         }
     }
 }

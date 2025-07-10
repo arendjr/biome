@@ -1,4 +1,5 @@
 use biome_rowan::{Text, TokenText};
+use compact_str::CompactString;
 
 /// Returns `text` with escape sequences processed.
 ///
@@ -29,7 +30,7 @@ pub fn unescape_js_string(text: TokenText) -> Text {
     match text.find('\\') {
         Some(index) => {
             let mut state = State::Escaped;
-            let mut string = text[..index].to_string();
+            let mut string = CompactString::new(&text[..index]);
             string.reserve(usize::from(text.len()) - string.len());
 
             let remainder = &text[(index + 1)..];

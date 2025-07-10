@@ -433,7 +433,7 @@ impl From<TypeofValue> for TypeData {
 impl TypeData {
     pub fn array_of(scope_id: ScopeId, ty: TypeReference) -> Self {
         Self::instance_of(TypeReference::from(
-            TypeReferenceQualifier::from_name(scope_id, Text::Static("Array"))
+            TypeReferenceQualifier::from_name(scope_id, Text::const_new("Array"))
                 .with_type_parameters([ty]),
         ))
     }
@@ -1088,7 +1088,7 @@ impl TypeMemberKind {
     pub fn name(&self) -> Option<Text> {
         match self {
             Self::CallSignature => None,
-            Self::Constructor => Some(Text::Static("constructor")),
+            Self::Constructor => Some(Text::const_new("constructor")),
             Self::Getter(name) | Self::Named(name) | Self::NamedStatic(name) => Some(name.clone()),
         }
     }

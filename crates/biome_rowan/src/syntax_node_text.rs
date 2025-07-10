@@ -3,6 +3,7 @@ use crate::{
     cursor::{SyntaxNode, SyntaxToken},
 };
 use biome_text_size::TextLen;
+use compact_str::format_compact;
 use std::iter::FusedIterator;
 use std::{cmp::Ordering, fmt};
 
@@ -149,11 +150,11 @@ impl SyntaxNodeText {
     }
 
     /// Converts the node text into `Text`, attempting to avoid an allocation if
-    /// the node consists of a single token.
+    /// the node consists of a single token or fits within a [`CompactString`].
     pub fn into_text(self) -> Text {
         match self.node.first_token() {
             Some(token) if token.text_range() == self.range => Text::Borrowed(token.token_text()),
-            _ => Text::Owned(self.to_string()),
+            _ => Text::Owned(format_compact!("{self}")),
         }
     }
 }

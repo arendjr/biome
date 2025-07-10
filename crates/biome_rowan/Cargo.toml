@@ -13,6 +13,7 @@ version              = "0.5.7"
 [dependencies]
 biome_text_edit = { workspace = true }
 biome_text_size = { workspace = true }
+compact_str     = { workspace = true }
 countme         = { workspace = true, optional = true }
 hashbrown       = { workspace = true, features = ["inline-more", "raw-entry"] }
 rustc-hash      = { workspace = true }

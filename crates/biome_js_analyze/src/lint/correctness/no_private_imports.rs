@@ -281,7 +281,7 @@ fn get_restricted_imports_from_module_source(
     let results = match node.syntax().parent().and_then(AnyJsImportClause::cast) {
         Some(AnyJsImportClause::JsImportCombinedClause(node)) => {
             let range = node.default_specifier()?.range();
-            get_restricted_import_visibility(&Text::Static("default"), options)
+            get_restricted_import_visibility(&Text::const_new("default"), options)
                 .map(|visibility| NoPrivateImportsState {
                     range,
                     path: path.clone(),
@@ -312,7 +312,7 @@ fn get_restricted_imports_from_module_source(
         }
         Some(AnyJsImportClause::JsImportDefaultClause(node)) => {
             let range = node.default_specifier()?.range();
-            get_restricted_import_visibility(&Text::Static("default"), options)
+            get_restricted_import_visibility(&Text::const_new("default"), options)
                 .map(|visibility| NoPrivateImportsState {
                     range,
                     path,
