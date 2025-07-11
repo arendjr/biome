@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::hash_map::Entry, ops::Deref, sync::Arc};
 
-use biome_js_syntax::AnyJsExpression;
+use biome_js_syntax::{AnyJsExpression, AnyTsType};
 use biome_js_type_info::{
     GLOBAL_RESOLVER, GLOBAL_UNKNOWN_ID, ImportSymbol, MAX_FLATTEN_DEPTH, ModuleId, Resolvable,
     ResolvedTypeData, ResolvedTypeId, ResolverId, ScopeId, Type, TypeData, TypeId,
@@ -403,20 +403,14 @@ impl TypeResolver for ModuleResolver {
         }
     }
 
-    fn resolve_expression(&mut self, _scope_id: ScopeId, expr: &AnyJsExpression) -> Cow<TypeData> {
-        let id = self.resolved_id_for_expression(expr);
-        match self.get_by_resolved_id(id) {
-            Some(resolved) => Cow::Owned(resolved.to_data()),
-            None => Cow::Owned(TypeData::unknown()),
-        }
+    fn resolve_expression(&mut self, _scope_id: ScopeId, expr: &AnyJsExpression) -> TypeReference {
+        let resolved_id = self.resolved_id_for_expression(expr);
+        TypeReference::from(resolved_id)
     }
 
-    fn reference_to_resolved_expression(
-        &mut self,
-        _scope_id: ScopeId,
-        expression: &AnyJsExpression,
-    ) -> TypeReference {
-        self.resolved_id_for_expression(expression).into()
+    fn resolve_ts_type(&mut self, scope_id: ScopeId, ty: &AnyTsType) -> TypeReference {
+        let data = TypeData::from_any_ts_type(self, scope_id, ty);
+        self.reference_to_owned_data(data)
     }
 
     /// Maps the given `resolved_id` such that if it references a type belonging

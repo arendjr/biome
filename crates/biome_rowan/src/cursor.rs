@@ -44,6 +44,7 @@ mod node;
 mod token;
 mod trivia;
 
+use std::hash::{Hash, Hasher};
 use std::{iter, ops};
 use std::{ptr, rc::Rc};
 
@@ -82,11 +83,19 @@ struct NodeData {
     offset: TextSize,
 }
 
+impl Hash for NodeData {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.kind.hash(state);
+        self.slot.hash(state);
+    }
+}
+
 /// A single NodeData (red node) is either a "root node" (no parent node and
 /// holds a strong reference to the root of the green tree) or a "child node"
 /// (holds a strong reference to its parent red node and a weak reference to its
 /// counterpart green node)
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 enum NodeKind {
     Root {
         green: GreenElement,
@@ -105,7 +114,7 @@ enum NodeKind {
 /// released green node points to deallocated memory and it is undefined
 /// behavior to dereference it, but in the context of `NodeData` this is
 /// statically known to never happen
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Hash)]
 enum WeakGreenElement {
     Node { ptr: ptr::NonNull<GreenNodeData> },
     Token { ptr: ptr::NonNull<GreenTokenData> },

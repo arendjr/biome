@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use biome_js_syntax::AnyJsExpression;
+use biome_js_syntax::{AnyJsExpression, AnyTsType};
 use biome_js_type_info_macros::Resolvable;
 use biome_rowan::Text;
 
@@ -576,25 +576,6 @@ pub trait TypeResolver {
         }
     }
 
-    /// Returns a reference to the given `expression` in the given scope with
-    /// the given ID.
-    fn reference_to_resolved_expression(
-        &mut self,
-        scope_id: ScopeId,
-        expression: &AnyJsExpression,
-    ) -> TypeReference {
-        let data = self.resolve_expression(scope_id, expression);
-        match data {
-            Cow::Owned(TypeData::Reference(reference)) => reference,
-            Cow::Borrowed(TypeData::Reference(reference)) => reference.clone(),
-            data => {
-                let data = Cow::Owned(data.into_owned());
-                let id = self.register_type(data);
-                self.reference_to_id(id)
-            }
-        }
-    }
-
     /// Registers a type within the level handled by this resolver.
     ///
     /// If the given `type_data` is already registered, this may return an
@@ -663,14 +644,14 @@ pub trait TypeResolver {
     }
 
     /// Resolves the given `expression` in the given `scope_id` to a type.
-    ///
-    /// Depending on the resolver, this may return owned type data based on
-    /// local inference, or a reference to previously resolved type data.
     fn resolve_expression(
         &mut self,
         scope_id: ScopeId,
         expression: &AnyJsExpression,
-    ) -> Cow<TypeData>;
+    ) -> TypeReference;
+
+    /// Resolves the given `ty` to a [`TypeReference`].
+    fn resolve_ts_type(&mut self, scope_id: ScopeId, ty: &AnyTsType) -> TypeReference;
 
     /// Resolves a type reference.
     fn resolve_reference(&self, ty: &TypeReference) -> Option<ResolvedTypeId>;

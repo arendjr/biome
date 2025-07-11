@@ -60,6 +60,12 @@ impl SyntaxNode {
         self.ptr.as_ref()
     }
 
+    /// Hashes the node by its shape rather than its position.
+    #[inline]
+    pub(crate) fn hash_shape<H: Hasher>(&self, state: &mut H) {
+        self.ptr.as_ref().hash(state)
+    }
+
     #[inline]
     pub fn kind(&self) -> RawSyntaxKind {
         self.data().kind()

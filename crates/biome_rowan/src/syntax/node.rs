@@ -10,6 +10,7 @@ use biome_text_size::{TextRange, TextSize};
 use serde::Serialize;
 use std::any::TypeId;
 use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::{fmt, ops};
@@ -48,6 +49,12 @@ impl<L: Language> SyntaxNode<L> {
 
     fn green_node(&self) -> GreenNode {
         self.raw.green().to_owned()
+    }
+
+    /// Hashes the node by its shape rather than its position.
+    #[inline]
+    pub fn hash_shape<H: Hasher>(&self, state: &mut H) {
+        self.raw.hash_shape(state)
     }
 
     pub fn key(&self) -> SyntaxElementKey {

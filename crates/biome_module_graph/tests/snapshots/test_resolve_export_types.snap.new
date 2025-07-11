@@ -1,0 +1,124 @@
+---
+source: crates/biome_module_graph/tests/snap/mod.rs
+assertion_line: 129
+expression: content
+---
+# `/src/index.ts`
+
+## Source
+
+```ts
+export const theAnswer = 42;
+
+/**
+ * Built by a race of hyper-intelligent pan-dimensional beings to
+ * calculate the Ultimate Answer to the Ultimate Question of Life,
+ * The Universe, and Everything.
+ *
+ * This JSDoc comment should not be transferred to the exported
+ * instance variable below.
+ */
+class DeepThought {
+	answerMe(): number {
+		return theAnswer;
+	}
+
+	giveMeABiggerAnswer(delta: number) {
+		// Return type should be inferred to `number`.
+		// TODO: At some point.
+		return theAnswer + delta;
+	}
+
+	whatWasTheUltimateQuestion(): unknown {
+		// This should not be inferred to `string` due to the
+		// explicit annotation in the signature.
+		return "Life, The Universe, and Everything";
+	}
+}
+
+export const superComputer = new DeepThought();
+```
+
+## Module Info
+
+```
+Exports {
+  "superComputer" => {
+    ExportOwnExport => JsOwnExport::Binding(3)
+  }
+  "theAnswer" => {
+    ExportOwnExport => JsOwnExport::Binding(0)
+  }
+}
+Imports {
+  No imports
+}
+```
+
+## Exported Bindings
+
+```
+BindingId(0) => JsBindingData {
+  Name: theAnswer,
+  Type: Module(0) TypeId(0),
+  Declaration kind: Value
+}
+
+BindingId(3) => JsBindingData {
+  Name: superComputer,
+  Type: Module(0) TypeId(6),
+  Declaration kind: Value
+}
+```
+
+## Registered types
+
+```
+Module TypeId(0) => value: 42
+
+Module TypeId(1) => Module(0) TypeId(0)
+
+Module TypeId(2) => Module(0) TypeId(3)
+
+Module TypeId(3) => number
+
+Module TypeId(4) => value: Life, The Universe, and Everything
+
+Module TypeId(5) => Module(0) TypeId(11)
+
+Module TypeId(6) => instanceof Module(0) TypeId(5)
+
+Module TypeId(7) => sync Function "answerMe" {
+  accepts: {
+    params: []
+    type_args: []
+  }
+  returns: Module(0) TypeId(3)
+}
+
+Module TypeId(8) => sync Function "giveMeABiggerAnswer" {
+  accepts: {
+    params: [
+      required delta: Module(0) TypeId(3)
+    ]
+    type_args: []
+  }
+  returns: Module(0) TypeId(3)
+}
+
+Module TypeId(9) => unknown
+
+Module TypeId(10) => sync Function "whatWasTheUltimateQuestion" {
+  accepts: {
+    params: []
+    type_args: []
+  }
+  returns: Module(0) TypeId(9)
+}
+
+Module TypeId(11) => class "DeepThought" {
+  extends: none
+  implements: []
+  type_args: []
+}
+```

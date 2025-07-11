@@ -7,7 +7,7 @@ use std::{
 use biome_js_semantic::{SemanticEvent, SemanticEventExtractor};
 use biome_js_syntax::{
     AnyJsCombinedSpecifier, AnyJsDeclaration, AnyJsExportDefaultDeclaration, AnyJsExpression,
-    AnyJsImportClause, JsForVariableDeclaration, JsFormalParameter, JsIdentifierBinding,
+    AnyJsImportClause, AnyTsType, JsForVariableDeclaration, JsFormalParameter, JsIdentifierBinding,
     JsSyntaxKind, JsSyntaxNode, JsSyntaxToken, JsVariableDeclaration, TsIdentifierBinding,
     TsTypeParameter, TsTypeParameterName, inner_string_text,
 };
@@ -970,30 +970,17 @@ impl TypeResolver for JsModuleInfoCollector {
         GLOBAL_RESOLVER.resolve_type_of(identifier, scope_id)
     }
 
-    fn resolve_expression(&mut self, _scope_id: ScopeId, expr: &AnyJsExpression) -> Cow<TypeData> {
-        match self.parsed_expressions.get(&expr.range()) {
-            Some(resolved_id) => match resolved_id.level() {
-                TypeResolverLevel::Thin => Cow::Borrowed(self.get_by_id(resolved_id.id())),
-                TypeResolverLevel::Global => {
-                    Cow::Borrowed(GLOBAL_RESOLVER.get_by_id(resolved_id.id()))
-                }
-                TypeResolverLevel::Full | TypeResolverLevel::Import => {
-                    Cow::Owned(TypeData::unknown())
-                }
-            },
-            None => Cow::Owned(TypeData::unknown()),
-        }
-    }
-
-    fn reference_to_resolved_expression(
-        &mut self,
-        _scope_id: ScopeId,
-        expression: &AnyJsExpression,
-    ) -> TypeReference {
+    fn resolve_expression(&mut self, _scope_id: ScopeId, expr: &AnyJsExpression) -> TypeReference {
         self.parsed_expressions
-            .get(&expression.range())
+            .get(&expr.range())
             .map(|resolved_id| TypeReference::Resolved(*resolved_id))
             .unwrap_or_default()
+    }
+
+    fn resolve_ts_type(&mut self, scope_id: ScopeId, ty: &AnyTsType) -> TypeReference {
+        let data = TypeData::from_any_ts_type(self, scope_id, ty);
+        let id = self.register_type(Cow::Owned(data));
+        TypeReference::Resolved(ResolvedTypeId::new(self.level(), id))
     }
 
     fn fallback_resolver(&self) -> Option<&dyn TypeResolver> {

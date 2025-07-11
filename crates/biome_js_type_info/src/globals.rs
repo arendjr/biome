@@ -7,7 +7,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use biome_js_syntax::AnyJsExpression;
+use biome_js_syntax::{AnyJsExpression, AnyTsType};
 use biome_rowan::Text;
 
 use crate::{
@@ -469,8 +469,14 @@ impl TypeResolver for GlobalsResolver {
         }
     }
 
-    fn resolve_expression(&mut self, scope_id: ScopeId, expr: &AnyJsExpression) -> Cow<TypeData> {
-        Cow::Owned(TypeData::from_any_js_expression(self, scope_id, expr))
+    fn resolve_expression(&mut self, scope_id: ScopeId, expr: &AnyJsExpression) -> TypeReference {
+        let data = TypeData::from_any_js_expression(self, scope_id, expr);
+        self.reference_to_owned_data(data)
+    }
+
+    fn resolve_ts_type(&mut self, scope_id: ScopeId, ty: &AnyTsType) -> TypeReference {
+        let data = TypeData::from_any_ts_type(self, scope_id, ty);
+        self.reference_to_owned_data(data)
     }
 
     fn registered_types(&self) -> Vec<&TypeData> {

@@ -82,9 +82,9 @@ impl TypeData {
                             reference
                                 .apply_module_id_to_data(Self::InstanceOf(instance_of.clone())),
                         ),
-                        Self::Reference(target) => Some(Self::Reference(
-                            reference.apply_module_id_to_reference(target).into_owned(),
-                        )),
+                        Self::Reference(TypeReference::Resolved(target)) => {
+                            Some(Self::Reference(reference.apply_module_id(*target).into()))
+                        }
                         _ => None,
                     },
                     None => None,

@@ -631,8 +631,10 @@ fn debug_type_info(
                     if let Some(ty) =
                         TypeData::from_js_variable_declarator(&mut resolver, scope_id, &node)
                     {
-                        result.push_str(&ty.to_string());
-                        result.push('\n');
+                        if let Some(ty) = resolver.resolve_and_get(&ty) {
+                            result.push_str(&ty.as_raw_data().to_string());
+                            result.push('\n');
+                        }
                     }
                 } else if let Some(function) = JsFunctionDeclaration::cast_ref(&node) {
                     result.push_str(

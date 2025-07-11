@@ -33,7 +33,7 @@ Imports {
 ```
 BindingId(0) => JsBindingData {
   Name: foo,
-  Type: Module(0) TypeId(1),
+  Type: Module(0) TypeId(0),
   JSDoc comment: JsDoc(
     @returns {string}
   ),
@@ -44,13 +44,11 @@ BindingId(0) => JsBindingData {
 ## Registered types
 
 ```
-Module TypeId(0) => void
-
-Module TypeId(1) => sync Function "foo" {
+Module TypeId(0) => sync Function "foo" {
   accepts: {
     params: []
     type_args: []
   }
-  returns: Module(0) TypeId(0)
+  returns: void
 }
 ```
