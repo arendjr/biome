@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use biome_analyze::{
     Rule, RuleDiagnostic, RuleDomain, RuleSource, context::RuleContext, declare_lint_rule,
 };
@@ -10,6 +8,7 @@ use biome_module_graph::{JsModuleInfo, ResolvedPath};
 use biome_rowan::AstNode;
 use biome_rule_options::no_import_cycles::NoImportCyclesOptions;
 use camino::{Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHashSet;
 
 use crate::services::module_graph::ResolvedImports;
 
@@ -160,7 +159,7 @@ fn find_cycle(
     start_path: &Utf8Path,
     mut module_info: JsModuleInfo,
 ) -> Option<Box<[Box<str>]>> {
-    let mut seen = HashSet::new();
+    let mut seen = FxHashSet::default();
     let mut stack: Vec<(Box<str>, JsModuleInfo)> = Vec::new();
 
     'outer: loop {
@@ -180,13 +179,11 @@ fn find_cycle(
                 return Some(paths);
             }
 
-            // FIXME: Use `get_or_insert_with()` once it's stabilized.
-            //        See: https://github.com/rust-lang/rust/issues/60896
-            if seen.contains(resolved_path.as_str()) {
+            if seen.contains(resolved_path) {
                 continue;
             }
 
-            seen.insert(resolved_path.to_string());
+            seen.insert(resolved_path.to_path_buf());
 
             if let Some(next_module_info) = ctx.module_info_for_path(resolved_path) {
                 stack.push((resolved_path.as_str().into(), module_info));
